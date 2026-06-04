@@ -1,0 +1,6 @@
+{
+  "name": "obsidian-ai-os",
+  "version": "0.1.0",
+  "description": "Research skills for an Obsidian vault — build, query, lint, distill, and render a persistent LLM-maintained research wiki over your vault, Readwise, NotebookLM, GitHub repos, and the web. Bundles the source CLIs' usage skills.",
+  "author": { "name": "Paul Iusztin" }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "iusztinpaul",
+  "owner": { "name": "Paul Iusztin" },
+  "plugins": [
+    {
+      "name": "obsidian-ai-os",
+      "source": "./plugins/obsidian-ai-os",
+      "description": "Research skills for an Obsidian-based Second Brain — the /research-* family (research, research-distill, research-lint, research-promote, research-render)."
+    }
+  ]
+}

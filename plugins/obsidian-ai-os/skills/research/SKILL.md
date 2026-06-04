@@ -167,7 +167,7 @@ If the user explicitly flagged a follow-up they want investigated next, ALSO app
 After writing both files (knowledge doc + slim question page), regenerate `index.md` (the new pages change `total_wiki_pages`):
 
 ```bash
-uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
+uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
 ```
 
 ### Q.6 — Append to log.md
@@ -302,7 +302,7 @@ For every unique `https://github.com/<owner>/<repo>[...]` URL in the brain dump:
 
 1. **Parse targets** — run the parser over the brain dump AND any markdown files the user referenced (e.g., an outline.md). The parser extracts repo-relative file paths + line ranges and groups them by parent directory (one "module" per dir):
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/github_parse_targets.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/github_parse_targets.py \
      --repo "<repo_url>" \
      --text "<brain_dump_text>" \
      --file "<linked_markdown_file_1>" \
@@ -313,7 +313,7 @@ For every unique `https://github.com/<owner>/<repo>[...]` URL in the brain dump:
 
 2. **Shallow-clone** the repo into the cache. Pass `--research-dir` so the cache lands as a sibling of the research dir (its parent), not under working memory:
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/github_clone.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/github_clone.py \
      --repo "<repo_url>" \
      --research-dir "<research_dir>"
    ```
@@ -437,7 +437,7 @@ After each round completes — **all steps delegate to bash/scripts/subagents so
 
 1. **Deduplicate** the round's subagent outputs via script:
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/dedup_findings.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/dedup_findings.py \
      --inputs <research_dir>/round-N-query-*.json \
      --output <research_dir>/round-N-deduped.json
    ```
@@ -462,7 +462,7 @@ The research rounds cast a wide net intentionally — now it's time to be select
 
 1. **Merge per-round deduped files** into a single candidates file via script (no LLM-side merging):
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/dedup_findings.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/dedup_findings.py \
      --inputs <research_dir>/round-*-deduped.json \
      --output <research_dir>/reranker-candidates.json
    ```
@@ -502,7 +502,7 @@ The Builder Subagent copies / fetches / pipes raw source content onto disk under
    - `seeds_json`: `<research_dir>/seeds.json` (from Step 1)
    - `research_dir`: the path from step 1 above (final files go here AND scratch JSONs land here too — they're cleaned up in Step 7)
    - `topic`, `input_summary`, `rounds_completed` from Step 1 / Step 2
-   - `skill_dir`: `${CLAUDE_PLUGIN_ROOT}/skills/research` (absolute path)
+   - `skill_dir`: `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research` (absolute path)
    - `mode: "raw_only"` — explicitly tells the builder to skip `index.yaml` emission
 
    If you already started the **seed-only** builder in Step 5, wait for it to finish before launching the full builder — the full run is idempotent.
@@ -521,7 +521,7 @@ For each entry in `raw_files`, run the asset pipeline. **All bash; nothing here 
 
 1. **PDFs** — for any source where `origin == "pdf"` (user-dropped) or where the original is a `.pdf` URL, the Builder will have already invoked `extract_pdf.py` to extract markdown + images and preserve the original at `raw/assets/<slug>/original.pdf`. If somehow not done, run it now:
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/extract_pdf.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/extract_pdf.py \
      --pdf "<original_pdf_path>" \
      --output-md "<research_dir>/raw/<slug>.md" \
      --assets-dir "<research_dir>/raw/assets/<slug>"
@@ -529,7 +529,7 @@ For each entry in `raw_files`, run the asset pipeline. **All bash; nothing here 
 
 2. **Images** — for every successful raw markdown file, download referenced images to local assets and rewrite refs:
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/download_assets.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/download_assets.py \
      --markdown "<research_dir>/raw/<slug>.md" \
      --assets-dir "<research_dir>/raw/assets/<slug>"
    ```
@@ -646,7 +646,7 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
 2. **Run `build_index_yaml.py`** to emit the canonical index:
    ```bash
    PRIOR_CREATED=$(grep '^created:' "<research_dir>/index.yaml" 2>/dev/null | awk -F"'" '{print $2}' || true)
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/build_index_yaml.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_yaml.py \
      --reranked "<research_dir>/reranked-final.json" \
      --seeds "<research_dir>/seeds-augmented.json" \
      --research-dir "<research_dir>" \
@@ -660,7 +660,7 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
 
 3. **Run `build_index_md.py`** to regenerate the Obsidian-readable view:
    ```bash
-   uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/build_index_md.py \
+   uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_md.py \
      --research-dir "<research_dir>"
    ```
    This is byte-stable: identical inputs → byte-identical output. Always the last write before the log entry.

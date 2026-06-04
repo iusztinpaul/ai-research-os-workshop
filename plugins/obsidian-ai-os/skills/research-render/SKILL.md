@@ -92,7 +92,7 @@ For `brief` only — **handle the `needs_guidance` return.** The brief writer is
 Renders compound. After all selected formats are written, regenerate `index.md` once so the new renders appear in the navigation:
 
 ```bash
-uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
+uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
 ```
 
 `index.yaml` does not need to be rebuilt — renders aren't sources, they don't have entries in the `sources:` array. The `total_wiki_pages` count is computed live by `build_index_md.py` from the wiki tree.

@@ -41,7 +41,7 @@ The four cheap checks always run. The four LLM checks run by default but can be 
 Run all four mechanical scripts in parallel and collect their JSON outputs. They all read-only; safe to run any time.
 
 ```bash
-SKILL_DIR="${CLAUDE_PLUGIN_ROOT}/skills/research-lint"
+SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research-lint"
 RD="<research_dir>"
 
 uv run --script "$SKILL_DIR/scripts/lint_orphans.py" --research-dir "$RD" > "$RD/lint-orphans.json" &
@@ -99,7 +99,7 @@ After any auto-apply edits land, regenerate the index:
 PRIOR_CREATED=$(grep '^created:' "<research_dir>/index.yaml" | awk -F"'" '{print $2}')
 # Re-run build_index_yaml.py is unnecessary because no source data changed,
 # but build_index_md.py must regenerate to reflect new pages in the index.
-uv run --script ${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
+uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
 ```
 
 ## Step 7 — Append to log.md

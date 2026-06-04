@@ -31,16 +31,48 @@ plugin is self-contained (each documents commands + auth):
 `obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli`. The CLI **binaries**
 themselves still install separately — see below.
 
-## Install (real plugin)
+## Install
+
+Two ways to install — both run from inside your Obsidian vault (or wherever you want the
+skills available). No symlinks, no machine-specific paths.
+
+Skill scripts are referenced as `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/…`, so they resolve
+under **either** install method: `${CLAUDE_PLUGIN_ROOT}` when installed as a Claude Code
+plugin, or the `.claude/skills/` fallback when installed as plain skills.
+
+### Option A — Claude Code plugin marketplace (recommended)
+
+Fully supported: bundles every skill, script, and agent, and sets `${CLAUDE_PLUGIN_ROOT}`.
 
 ```text
-/plugin marketplace add /Users/pauliusztin/Documents/01-Projects/obsidian-ai-os
+/plugin marketplace add iusztinpaul/obsidian-ai-os
 /plugin install obsidian-ai-os@iusztinpaul
 ```
 
-(Or point `marketplace add` at the GitHub remote once pushed.) Skill scripts reference
-themselves via `${CLAUDE_PLUGIN_ROOT}`, so they resolve from the installed plugin
-location — no symlinks, no path rewriting.
+`marketplace add` also accepts a full git URL (`https://github.com/iusztinpaul/obsidian-ai-os`)
+or a local clone path if you're developing it.
+
+### Option B — `npx skills` (Vercel skills CLI)
+
+Uses [`vercel-labs/skills`](https://github.com/vercel-labs/skills). The subcommand is
+`add` (there is no `npx skills install`); it copies skill folders into `.claude/skills/`.
+**Install into project scope** (the default — run from your vault root) so the
+`.claude/skills/` fallback resolves; avoid global `-g` for the script-running skills.
+
+```bash
+# Browse everything in this repo (skills are nested under plugins/, so use --full-depth):
+npx skills add iusztinpaul/obsidian-ai-os --full-depth --list
+
+# Install a specific skill by its path (most reliable):
+npx skills add https://github.com/iusztinpaul/obsidian-ai-os/tree/main/plugins/obsidian-ai-os/skills/research -a claude-code
+
+# Or install all skills from the repo to Claude Code, non-interactively:
+npx skills add iusztinpaul/obsidian-ai-os --full-depth --all -a claude-code -y
+```
+
+Install at least `research` (the others — `research-lint`, `research-render` — call its
+`build_index_md.py`), plus the source-CLI usage skills you want (`obsidian-cli`,
+`readwise-cli`, `nlm-skill`, `brightdata-cli`). Keep them in the same scope.
 
 ## Dependencies
 

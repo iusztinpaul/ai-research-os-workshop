@@ -66,7 +66,7 @@ No PARA structure, templates, or tagging-rules files are required anymore.
 | Removed `*-guideline-create` handoffs | Those skills live in scrabble; a brief is now a plain reusable seed. |
 | `<working_memory_dir>` → `working-dir/` | No consumer `CLAUDE.md` to define it; fixed default relative to cwd. |
 | "Second Brain" branding → "your knowledge sources / Obsidian vault" | Genericized. |
-| `.claude/skills/…` + `<skill_dir>` → `${CLAUDE_PLUGIN_ROOT}/skills/…` | Real plugin install resolves scripts from the plugin location, not a symlinked `.claude/`. |
+| `.claude/skills/…` + `<skill_dir>` → `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/…` | Resolves under both install methods: `${CLAUDE_PLUGIN_ROOT}` for a Claude Code plugin install, and the `.claude/skills/` fallback for plain skill installs (`npx skills add`). |
 | `uv run python <script>` → `uv run --script <script>` + PEP 723 headers | Self-bootstrapping Python with no project pyproject. |
 | Bundled `obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli` | Self-contained usage docs for the source CLIs. |
 | `resources/` (profiles, datasets, glossary) NOT moved | Never referenced by the research family. |

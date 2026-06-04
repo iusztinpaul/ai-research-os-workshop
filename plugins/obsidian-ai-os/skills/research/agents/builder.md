@@ -16,7 +16,7 @@ You receive:
 
 ## Context-efficiency rule
 
-You are the last line of defense against blowing up the orchestrator's context. Everything you do should flow through bash, `cp`, CLI piping, and the scripts under `${CLAUDE_PLUGIN_ROOT}/skills/research/scripts/`. **Never use the Read tool** on source files — the researcher and reranker already produced all the metadata you need, and it lives in the JSON inputs. If you find yourself wanting to Read a file for anything other than the two JSON inputs, stop and think: is this metadata already in the JSON? (It should be.)
+You are the last line of defense against blowing up the orchestrator's context. Everything you do should flow through bash, `cp`, CLI piping, and the scripts under `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/`. **Never use the Read tool** on source files — the researcher and reranker already produced all the metadata you need, and it lives in the JSON inputs. If you find yourself wanting to Read a file for anything other than the two JSON inputs, stop and think: is this metadata already in the JSON? (It should be.)
 
 ## Process
 

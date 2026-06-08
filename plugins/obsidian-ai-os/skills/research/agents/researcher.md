@@ -11,24 +11,28 @@ You receive:
 - **output_path**: Where to save your results JSON file
 - **notebook_ids** (optional): List of NotebookLM notebook IDs to search. Each entry has `id` and `title`. If empty or not provided, skip the NotebookLM search step.
 - **available_clis** (optional): The set of source CLIs the orchestrator confirmed are installed (e.g. `obsidian`, `readwise`, `nlm`). **Only search a source whose CLI is in this set.** If `available_clis` is not provided, defensively guard each CLI yourself with `command -v <cli>` before calling it. Either way, a missing CLI means **skip that source's step** — never call a binary that isn't installed (it would abort the search with `command not found`).
+- **source_commands** (optional): Map of resolved command strings for installed CLIs. Use this when provided, especially `source_commands.obsidian`, because on Windows the working CLI may be `%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com` instead of `obsidian` on PATH.
 
 ## Process
 
 > **CLI guard (applies to every step below).** Before running a source's CLI, confirm it's
-> available: it's listed in `available_clis`, or `command -v <cli>` succeeds. If not,
-> **skip that step silently in the findings** (the orchestrator already warned the user in
-> its Step 0.5 preflight) and move on. Do not error out; just return whatever the available
-> sources yielded.
+> available: it's listed in `available_clis`, or `command -v <cli>` succeeds. If
+> `source_commands.<cli>` exists, use that resolved command string instead of the bare CLI
+> name. If unavailable, **skip that step silently in the findings** (the orchestrator
+> already warned the user in its Step 0.5 preflight) and move on. Do not error out; just
+> return whatever the available sources yielded.
 
 ### Step 1: Search the Obsidian vault
 
 *(Skip this step entirely if `obsidian` is not available.)*
 
-Use the `obsidian` CLI to search the vault. Run multiple searches with different phrasings to be thorough:
+Use the resolved Obsidian CLI command (`source_commands.obsidian` when provided,
+otherwise `obsidian`) to search the vault. Run multiple searches with different phrasings
+to be thorough:
 
 **Content search** — Use `obsidian search` to find notes containing relevant terms:
 ```bash
-obsidian search query="<search terms>" limit=20
+<obsidian_cmd> search query="<search terms>" limit=20
 ```
 Try variations of the search query — exact phrases, individual key terms, related concepts. Run 2-3 searches with different phrasings.
 

@@ -272,10 +272,21 @@ Obsidian/Readwise/NLM discovery check. Discovery modes (`append-deep`, `init` wi
 discovery) run the full source preflight. A missing CLI must never crash the run with a
 cryptic `command not found`; it must degrade gracefully with a clear, named warning.
 
-For discovery modes, run one detection pass and remember the result as `available_clis`:
+For discovery modes, run one detection pass and remember the result as `available_clis`
+plus `source_commands` (the command string to run for each source CLI). Prefer binaries
+on PATH. For Obsidian, also support the installed desktop CLI when it is not on PATH:
+
+- If `obsidian` is on PATH, set `source_commands.obsidian = "obsidian"`.
+- Else if `OBSIDIAN_CLI` is set, use that path.
+- Else on Windows, try `%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com`.
+- Validate the resolved command with `help`; if it says the CLI is not enabled, mark
+  Obsidian missing and tell the user to enable it in Obsidian Settings > General >
+  Advanced > Command line interface.
+
+For all other CLIs, PATH detection is enough:
 
 ```bash
-for cli in obsidian readwise nlm bdata git; do
+for cli in readwise nlm bdata git; do
   if command -v "$cli" >/dev/null 2>&1; then
     echo "$cli: available"
   else
@@ -295,7 +306,7 @@ without it:
 
 | CLI | Powers | If MISSING → |
 |---|---|---|
-| `obsidian` | Obsidian vault search (a research source) | Warn: "⚠️ `obsidian` CLI not found — skipping your vault as a source. See the `obsidian-cli` skill to install." Drop Obsidian from `available_clis`; continue with other sources. |
+| `obsidian` | Obsidian vault search (a research source) | Warn: "⚠️ Obsidian CLI unavailable — skipping your vault as a source. Enable the Obsidian CLI, put `obsidian` on PATH, or set `OBSIDIAN_CLI` to the CLI executable. See the `obsidian-cli` skill." Drop Obsidian from `available_clis`; continue with other sources. |
 | `readwise` | Readwise library + feed search | Warn: "⚠️ `readwise` CLI not found — skipping Readwise. See the `readwise-cli` skill (`npm install -g @readwise/cli`)." Continue. |
 | `nlm` | NotebookLM search | Warn: "⚠️ `nlm` CLI not found — skipping NotebookLM. See the `nlm-skill`." Set `notebook_ids = []`; skip Step 3b's auth check. Continue. |
 | `bdata` | Web-seed crawling + Readwise→URL fallback | Warn: "⚠️ `bdata` CLI not found — web pages will be fetched with the lower-fidelity WebFetch fallback. See the `brightdata-cli` skill." Use WebFetch. Continue. |
@@ -313,9 +324,11 @@ tell the user clearly:
 > ❌ No research sources available. Install at least one source CLI (`obsidian`,
 > `readwise`, or `nlm` — see their bundled skills) or include a seed URL/PDF, then re-run.
 
-Otherwise proceed with whatever is available. **Pass `available_clis` into every researcher
-subagent (Step 4)** so it only attempts searches for installed CLIs. Auth (not just
-presence) is re-checked at point of use for `nlm` (Step 3b) and `bdata` (Step 1).
+Otherwise proceed with whatever is available. **Pass `available_clis` and
+`source_commands` into every researcher subagent (Step 4)** so it only attempts searches
+for installed CLIs and uses the resolved command path when a binary is not on PATH. Auth
+(not just presence) is re-checked at point of use for `nlm` (Step 3b) and `bdata` (Step
+1).
 
 ## Step 1 — Understand the brain dump
 

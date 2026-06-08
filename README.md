@@ -113,9 +113,9 @@ skipped with a clear warning and the run continues with the other sources.
 
 ### External CLI binaries and auth (install/auth separately)
 
-These power the research *sources*. `/research` runs a **Step 0.5 preflight** (`command -v`
-for source CLIs)
-that detects which CLIs are installed and, for each missing one, prints a clear one-line
+These power the research *sources*. `/research` runs a **Step 0.5 preflight** that
+resolves source CLI commands (PATH first; Windows Obsidian desktop CLI fallback) and, for
+each missing one, prints a clear one-line
 warning naming the lost capability + the bundled skill, then continues with whatever is
 available — a missing CLI never crashes the run with `command not found`. If a web seed's
 `bdata` is missing it falls back to WebFetch; if NotebookLM/Readwise/Obsidian are missing
@@ -124,7 +124,7 @@ no seeds, it stops with an explicit "no sources available — install one of …
 
 | CLI | Install | Auth | Used by |
 |---|---|---|---|
-| `obsidian` | install the Obsidian CLI on your PATH (see `obsidian-cli` skill) | points at your vault | `/research` vault search |
+| `obsidian` | enable the Obsidian CLI in Obsidian; put `obsidian` on PATH or set `OBSIDIAN_CLI` to the executable. On Windows, `/research` also tries `%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com`. | points at your vault | `/research` vault search |
 | `readwise` | `npm install -g @readwise/cli` | `readwise login-with-token <token>` | `/research` Readwise library + feed |
 | `nlm` | see `nlm-skill` (Go CLI) | `nlm login` (sessions ~20 min) | `/research` NotebookLM |
 | `bdata` / `brightdata` | `curl -fsSL https://cli.brightdata.com/install.sh \| bash` or `npm install -g @brightdata/cli` (Node ≥ 20) | `bdata login` | `/research` web crawl (WebFetch fallback) |

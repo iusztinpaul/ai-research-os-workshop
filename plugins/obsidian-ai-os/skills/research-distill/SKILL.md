@@ -45,6 +45,7 @@ The content mentions the source by:
 - Filename reference (e.g., the `uri_highlights` or `uri_full` filename)
 - NotebookLM notebook title or source URL (for `notebooklm` origin sources)
 - GitHub repo URL, repo name, or any entry in `github_files` (for `github` origin sources). Only one source entry exists per repo — the `uri_full` ARCHITECTURE.md — so matching a single referenced file path is enough to include that whole entry. The module docs it links to live in the same subfolder and are available via those links, not as separate sources.
+- YouTube URL, video ID, title, channel, or timestamped claim reference (for `youtube` origin sources). A timestamped mention like `12:30` near the video title or URL is enough to include the source.
 
 ### Traceable ideas
 The content contains ideas, patterns, or concepts that are clearly traceable to the source. To check this:
@@ -123,7 +124,7 @@ Create `research.md` in the same directory as the content files. The file contai
    - `<uri_full>`: Filename of the full document file, or `null` if none
    - `<uri_source_page>`: The Layer 1.5 wiki source page (`wiki/sources/<slug>.md`) if present in `index.yaml`, else `null`. This is the writer agent's primary drill-down target when it needs more depth than the distilled body provides without jumping all the way to raw.
    - `<original_path>`: The original vault path or URL
-   - `<origin>`: `obsidian`, `readwise`, `web`, `notebooklm`, or `github`
+   - `<origin>`: `obsidian`, `readwise`, `web`, `notebooklm`, `github`, `pdf`, or `youtube`
    - `<relevance_score>`: The numeric score from reranking
    - `<tags>`: Comma-separated tag list
    - `<summary>`: The reranker's summary from index.yaml
@@ -131,6 +132,7 @@ Create `research.md` in the same directory as the content files. The file contai
    - `<nlm_source_id>`: (NotebookLM sources only) The NLM source UUID
    - `<nlm_notebook_title>`: (NotebookLM sources only) The notebook's human-readable title
    - `<github_repo_url>`, `<github_commit_sha>`, `<github_branch>`, `<github_files>`: (GitHub sources only) Emit these when `origin` is `github`. `<github_files>` is a comma-separated list of the referenced file paths — surfacing it here makes the distilled `research.md` self-contained for audit.
+   - `<youtube_video_id>`, `<youtube_url>`, `<youtube_channel>`, `<duration_seconds>`, `<transcript_source>`, `<transcript_language>`, `<transcript_language_code>`, `<transcript_is_generated>`, `<timestamps_available>`: (YouTube sources only) Emit these when present in `index.yaml`.
 
 3. **`<match_reason>`**: A 1-2 sentence explanation of why this source was included — what explicit reference or traceable idea linked it to the content. This helps the user (and future agents) understand the connection.
 

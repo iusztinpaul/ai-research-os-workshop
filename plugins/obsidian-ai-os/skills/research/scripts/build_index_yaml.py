@@ -78,6 +78,15 @@ OPTIONAL_FIELDS = [
     "github_commit_sha",  # github only
     "github_branch",  # github only
     "github_files",  # github only (union of referenced paths across all module docs)
+    "youtube_video_id",  # youtube only
+    "youtube_url",  # youtube only
+    "youtube_channel",  # youtube only
+    "duration_seconds",  # youtube only
+    "transcript_source",  # youtube only - transcript_api | manual
+    "transcript_language",  # youtube only
+    "transcript_language_code",  # youtube only
+    "transcript_is_generated",  # youtube only
+    "timestamps_available",  # youtube only
 ]
 
 

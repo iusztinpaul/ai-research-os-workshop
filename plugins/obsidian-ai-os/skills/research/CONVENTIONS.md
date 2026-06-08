@@ -70,6 +70,7 @@ Three layers, in priority order for any agent reading the dir:
 - **Slugify** all derived filenames: lowercase, kebab-case, ASCII only, strip punctuation, max 60 chars.
 - **Readwise** raw files: prefix with `readwise-` (e.g., `raw/readwise-anatomy-of-an-agent-harness.md`).
 - **NotebookLM** raw files: prefix with `nlm-` (e.g., `raw/nlm-context-engineering-talk.md`).
+- **YouTube** raw files: prefix with `youtube-` (e.g., `raw/youtube-agent-harness-demo.md`). The raw file is caption-transcript markdown with timestamped snippets; it is treated as the complete Layer 3 source.
 - **Web seeds**: no prefix; slug from page title.
 - **Obsidian notes**: no prefix; slug from note title.
 - **GitHub**: stored ONLY under `wiki/repos/<repo>/` (curated `ARCHITECTURE.md` + per-module `<module>.md`). The actual repo source code lives outside the research dir in a `.github-cache/` placed as a sibling of it (in the research dir's parent — a reusable shallow clone, ephemeral). Do not slugify repo or module names — preserve them as-is for traceability. **GitHub is the one source type that has no `raw/` entry** — its "raw" is upstream code, pinned by `github_commit_sha`.
@@ -94,8 +95,8 @@ total_sources: <int>
 total_wiki_pages: <int>
 sources:
   - title: <string>
-    origin: obsidian | readwise | web | notebooklm | github | pdf
-    original_path: <vault path | URL | nlm:// | github:// | pdf://>
+    origin: obsidian | readwise | web | notebooklm | github | pdf | youtube
+    original_path: <vault path | URL | nlm:// | github:// | pdf:// | youtube://>
     source_url: <URL or null>
     authors: [<string>, ...]
     published_date: <YYYY-MM-DD or null>
@@ -117,6 +118,15 @@ sources:
     github_commit_sha: <sha>              # github only
     github_branch: <string>               # github only
     github_files: [<path>, ...]           # github only
+    youtube_video_id: <string>            # youtube only
+    youtube_url: <URL>                    # youtube only
+    youtube_channel: <string or null>     # youtube only
+    duration_seconds: <int or null>       # youtube only
+    transcript_source: transcript_api | manual  # youtube only
+    transcript_language: <string or null> # youtube only
+    transcript_language_code: <string or null> # youtube only
+    transcript_is_generated: <bool or null> # youtube only
+    timestamps_available: <bool>          # youtube only
     wiki_refs: [<wiki-page-path>, ...]    # which wiki pages cite this source
 ingest_log:
   - date: <YYYY-MM-DD>
@@ -249,6 +259,7 @@ created: <ISO-8601>
 - NotebookLM: `nlm://note/<id>` or `nlm://source/<id>`
 - GitHub: `github://<owner>/<repo>@<commit_sha>`
 - User-dropped PDFs: `pdf://<original-filename>` (the PDF itself is preserved at `raw/assets/<slug>/original.pdf`)
+- YouTube: `youtube://<video_id>` with `youtube_url` preserving the original URL
 
 These are stable identifiers. Use them for deduplication and for matching in `/research-distill`.
 
@@ -272,7 +283,18 @@ Do not skip Layer 1. Do not bulk-read Layer 3.
 
 ## Web content fetching
 
-Generic `http(s)://` sources — anything that is **not** a vault path, Readwise reference, GitHub repo, NotebookLM URI, or `.pdf` — are crawled with the **Bright Data CLI** (`bdata scrape`, via the `/brightdata-cli` skill), which returns clean markdown and transparently clears bot-blocking, CAPTCHAs, paywalls, JS rendering, and geo-walls. Known platforms (YouTube, LinkedIn, Reddit, Amazon, …) prefer the matching `bdata pipelines <type>` for structured output. **WebFetch is the fallback only** — used when `bdata` is not installed/authenticated; runs that fall back should say so. This applies wherever the family fetches a remote page: web seeds (orchestrator Step 1) and the Readwise→URL fallback in the builder. The fetch tool used is recorded in `log.md`.
+Generic `http(s)://` sources — anything that is **not** a vault path, Readwise reference, GitHub repo, NotebookLM URI, YouTube URL, or `.pdf` — are crawled with the **Bright Data CLI** (`bdata scrape`, via the `/brightdata-cli` skill), which returns clean markdown and transparently clears bot-blocking, CAPTCHAs, paywalls, JS rendering, and geo-walls. Known platforms (LinkedIn, Reddit, Amazon, …) prefer the matching `bdata pipelines <type>` for structured output. **WebFetch is the fallback only** — used when `bdata` is not installed/authenticated; runs that fall back should say so. This applies wherever the family fetches a remote page: web seeds (orchestrator Step 1) and the Readwise→URL fallback in the builder. The fetch tool used is recorded in `log.md`.
+
+## YouTube video handling
+
+Public YouTube URLs are first-class seed sources and should be routed before generic web scraping. They are extracted with public YouTube captions via `scripts/youtube_extract_transcript.py`, which writes timestamped transcript markdown to `raw/youtube-<slug>.md` without requiring an API key.
+
+- YouTube sources use `origin: youtube`.
+- `uri_full` points at the generated raw markdown file.
+- `uri_highlights` is always `null` unless the user separately provides manual highlights.
+- The raw markdown should preserve timestamps, spoken claims, mentioned tools/repos/papers, notable quotes, and open questions visible in the captions. It should not invent visual observations that are not present in the transcript.
+- The source page should preserve timestamp anchors wherever possible.
+- Requires public captions/transcripts to be available for the video. If captions are unavailable or blocked, skip YouTube ingestion with a clear warning unless a manual transcript is provided.
 
 ## Image and PDF handling
 

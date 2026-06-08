@@ -2,8 +2,8 @@
 
 A Claude Code plugin that turns an **Obsidian vault** into a persistent,
 LLM-maintained research wiki. It ships the `/research-*` family of skills: build a
-research directory from your vault + reading library + notebooks + GitHub repos + the
-web, then query, lint, distill, and render it.
+research directory from your vault + reading library + notebooks + GitHub repos +
+YouTube videos + the web, then query, lint, distill, and render it.
 
 Designed to be plugged into an Obsidian vault and installed as a **real Claude Code
 plugin** (no symlinks). Research output lives under `working-dir/` relative to where you
@@ -15,7 +15,7 @@ run the skills.
 
 | Skill | What it does |
 |---|---|
-| `/research` | Conversational entry point. Init / append / query a per-topic research dir (`index.yaml` + `wiki/` + `raw/`). Ingests Obsidian, Readwise, NotebookLM, GitHub repos, web seeds, and dropped PDFs. |
+| `/research` | Conversational entry point. Init / append / query a per-topic research dir (`index.yaml` + `wiki/` + `raw/`). Ingests Obsidian, Readwise, NotebookLM, GitHub repos, YouTube videos, web seeds, and dropped PDFs. |
 | `/research-distill` | Distil a research dir into a single compact `research.md` containing only the sources actually used by a piece of content. |
 | `/research-lint` | Health-check a research dir: orphans, missing hubs/comparisons, broken wikilinks, stale claims, contradictions, open questions. |
 | `/research-render` | Render wiki pages into Marp decks, matplotlib charts, Obsidian Canvases, or social content briefs, filed back into `wiki/renders/`. |
@@ -84,13 +84,22 @@ first run, regardless of the current directory. Nothing to install by hand. (A r
 `pyproject.toml` is included for local dev only; the skills don't depend on it.)
 
 Per-script deps: `pyyaml` (index + lint), `httpx` (image download), `pymupdf` +
-`pymupdf4llm` (PDF extraction), `matplotlib` (chart render).
+`pymupdf4llm` (PDF extraction), `youtube-transcript-api` (YouTube captions),
+`matplotlib` (chart render).
 
 Requires [`uv`](https://docs.astral.sh/uv/) on PATH.
 
-### External CLI binaries (install separately)
+### YouTube captions
 
-These power the research *sources*. `/research` runs a **Step 0.5 preflight** (`command -v`)
+YouTube ingestion requires no API key. `/research` fetches the public caption transcript
+for YouTube URLs and writes it into `raw/youtube-<slug>.md` as a timestamped source. If a
+video has captions disabled or no transcript in the requested language, that video is
+skipped with a clear warning and the run continues with the other sources.
+
+### External CLI binaries and auth (install/auth separately)
+
+These power the research *sources*. `/research` runs a **Step 0.5 preflight** (`command -v`
+for source CLIs)
 that detects which CLIs are installed and, for each missing one, prints a clear one-line
 warning naming the lost capability + the bundled skill, then continues with whatever is
 available — a missing CLI never crashes the run with `command not found`. If a web seed's
@@ -106,6 +115,7 @@ no seeds, it stops with an explicit "no sources available — install one of …
 | `bdata` / `brightdata` | `curl -fsSL https://cli.brightdata.com/install.sh \| bash` or `npm install -g @brightdata/cli` (Node ≥ 20) | `bdata login` | `/research` web crawl (WebFetch fallback) |
 | `marp` *(optional)* | Marp CLI or Obsidian Marp plugin | — | viewing `/research-render marp` output |
 | `git` | system git | — | `/research` GitHub repo ingestion |
+| YouTube captions | none | none | `/research` YouTube video ingestion when public transcripts are available |
 
 ### Assumes an Obsidian vault
 

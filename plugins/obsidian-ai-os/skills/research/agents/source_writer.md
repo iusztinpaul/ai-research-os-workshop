@@ -43,6 +43,15 @@ From the raw text plus `source_metadata`, identify:
 
 Be conservative with entity/concept suggestions. A passing mention of "ReAct" doesn't make ReAct an entity worth a page; the source must engage with it meaningfully. The threshold the wiki uses is "appears in ≥2 sources" — your job is just to flag candidates honestly.
 
+### YouTube-specific handling
+
+For YouTube sources (`origin: "youtube"`), preserve the video-specific structure:
+- Keep timestamp anchors on key claims whenever the raw markdown provides them.
+- Capture spoken claims, concrete demos, tools, repos, papers, people, and examples mentioned in the captions.
+- Do not invent visual/demo observations that are not present in the transcript.
+- Treat transcript text as source captions, not as manually curated highlights; do not set or imply Layer 2.
+- Prefer timestamped citations such as `[[raw/youtube-<slug>#03:20|03:20]]` when timestamp headings exist; otherwise cite the raw file and keep the timestamp in the sentence.
+
 ### Step 3: Write the page
 
 Write to `output_path`. Use this exact structure:

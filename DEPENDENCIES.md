@@ -1,8 +1,8 @@
 # Dependencies
 
 What the `/research-*` family needs to run as a standalone Claude Code plugin. With the
-changes below, the plugin is self-contained **except for the external CLI binaries** and
-an Obsidian vault to point at.
+changes below, the plugin is self-contained **except for external CLI binaries and their
+auth,** plus an Obsidian vault to point at.
 
 ## 1. Python — self-bootstrapping (no setup)
 
@@ -16,6 +16,7 @@ from any vault without a project `pyproject.toml`.
 | `research/scripts/build_index_md.py`, `build_index_yaml.py` | `pyyaml` |
 | `research/scripts/download_assets.py` | `httpx` |
 | `research/scripts/extract_pdf.py` | `pymupdf`, `pymupdf4llm` |
+| `research/scripts/youtube_extract_transcript.py` | `youtube-transcript-api` |
 | `research-lint/scripts/lint_*.py` | `pyyaml` (via `_lintlib`) |
 | `research-render` generated chart `.py` | `matplotlib` (header emitted by `chart_writer`) |
 | `dedup_findings.py`, `github_clone.py`, `github_parse_targets.py` | stdlib only |
@@ -23,7 +24,7 @@ from any vault without a project `pyproject.toml`.
 Only requirement: [`uv`](https://docs.astral.sh/uv/) on PATH. The root `pyproject.toml`
 is kept for local dev convenience only — the skills do not rely on it.
 
-## 2. External CLI binaries (install + auth separately)
+## 2. External CLIs and auth (install + authenticate separately where needed)
 
 Invoked by name from the skills. Their **usage skills are bundled** in this plugin
 (`obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli`) so the agent knows the
@@ -44,6 +45,7 @@ the run continues with the available sources, or stops with an explicit message 
 | `bdata` / `brightdata` | `curl -fsSL https://cli.brightdata.com/install.sh \| bash` or `npm i -g @brightdata/cli` (Node ≥ 20) | `bdata login` | WebFetch (lower fidelity) |
 | `marp` | optional viewer | — | view in Obsidian Marp plugin |
 | `git` | system git | — | GitHub ingestion unavailable |
+| YouTube captions | none | none | YouTube video ingestion skipped when captions/transcripts are unavailable |
 
 ## 3. Obsidian vault (consumer-native)
 

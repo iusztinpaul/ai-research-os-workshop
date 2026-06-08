@@ -76,7 +76,7 @@ show a plan; answer fast.
 
 ### Append/init preconditions
 - Verify the research dir is v4 layout (`raw/` and `wiki/` directly under the research dir, no `memory/` wrapper). If it's older (v1 with raw at root, or v3 with a `memory/` wrapper), migrate it to v4 first - or instruct the user to - before ingesting.
-- Read existing `index.yaml` for append modes. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in seed-only modes with an "already ingested" message.
+- Read existing `index.yaml` for append modes. If `index.yaml` is missing but `index.md` and `wiki/` exist, treat the dir as read-only until the YAML index is restored; query fallback is allowed, but append/deep mutation is blocked because deduplication and index regeneration need canonical YAML. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in seed-only modes with an "already ingested" message.
 - Capture the existing `created` timestamp for append modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7.
 
 ### Seed-only skip list
@@ -101,7 +101,13 @@ Use the same locator logic as Step 0 (path provided / topic slug / scan `working
 
 ### Q.2 — Load the index
 
-Read `<research_dir>/index.yaml`. Always read the YAML, not the MD — the YAML is canonical and has the full schema. The MD is for humans browsing in Obsidian.
+Read `<research_dir>/index.yaml`. The YAML is canonical and has the full schema. The MD is for humans browsing in Obsidian.
+
+If `index.yaml` is missing but `index.md` and `wiki/` exist, continue in **read-only fallback**:
+- Read `index.md` for topic, source list, scores, origins, and raw/source-page links.
+- Read `wiki/overview.md` / `wiki/synthesis.md` for synthesized answers.
+- Do not save Q&A, regenerate `index.md`, append to `log.md`, or mutate wiki files in fallback mode.
+- Tell the user once: "`index.yaml` is missing, so I answered from `index.md` + wiki fallback. Restore/regenerate `index.yaml` before append/deep ingest."
 
 Parse and understand:
 - `topic`, `input_summary`, `total_sources`, `total_wiki_pages`

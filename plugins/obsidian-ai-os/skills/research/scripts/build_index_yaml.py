@@ -19,10 +19,19 @@ Inputs:
                       1-2 sentence summary of the user's brain dump.
   --rounds <int>      Rounds completed.
   --output <path>     Where to write index.yaml (usually <research_dir>/index.yaml).
+  --existing-index <path>
+                      Prior index.yaml to merge on append runs. Its `sources` are
+                      carried forward and unioned with the new seeds/results, deduped
+                      by `original_path` (a freshly-ingested source supersedes the
+                      stale entry). Omit on init runs. Reading happens fully in memory
+                      before writing, so --output may point at the same file.
 
 Behavior:
   - Seed URIs (score 1.0) come first.
-  - Remaining sources sorted by `relevance_score` descending.
+  - Remaining sources (new results + carried-forward existing) sorted by
+    `relevance_score` descending.
+  - On append (--existing-index), prior sources are preserved unless superseded by a
+    new source sharing the same `original_path`.
   - Emits a fixed schema regardless of which optional fields are null.
   - Null values stay as `null` in YAML (pyyaml default). Missing fields are filled
     with null so the output schema is stable.
@@ -126,7 +135,19 @@ def normalize_source(entry: dict) -> dict:
     return out
 
 
-def load_sources(reranked_path: Path, seeds_path: Path | None) -> list[dict]:
+def load_existing_sources(existing_index_path: Path | None) -> list[dict]:
+    """Load `sources` from a prior index.yaml for append runs. Empty if absent."""
+    if existing_index_path is None or not existing_index_path.exists():
+        return []
+    doc = yaml.safe_load(existing_index_path.read_text()) or {}
+    return doc.get("sources", []) or []
+
+
+def load_sources(
+    reranked_path: Path,
+    seeds_path: Path | None,
+    existing_index_path: Path | None = None,
+) -> list[dict]:
     reranked = json.loads(reranked_path.read_text()).get("results", [])
     seeds = []
     if seeds_path is not None and seeds_path.exists():
@@ -138,13 +159,27 @@ def load_sources(reranked_path: Path, seeds_path: Path | None) -> list[dict]:
         row["relevance_score"] = 1.0
 
     ranked_rows = [normalize_source(r) for r in reranked]
-    ranked_rows.sort(key=lambda r: r.get("relevance_score") or 0.0, reverse=True)
 
-    # De-dupe by original_path: if a seed and a ranked result share a path, seed wins.
+    # Carry forward sources from a prior index.yaml (append runs). A freshly-ingested
+    # source — whether seed or ranked — supersedes the stale entry sharing its path.
+    new_paths = {row.get("original_path") for row in seed_rows + ranked_rows if row.get("original_path")}
+    carried_rows = [
+        normalize_source(s)
+        for s in load_existing_sources(existing_index_path)
+        if s.get("original_path") not in new_paths
+    ]
+
+    # New ranked results join carried-forward existing sources, all sorted by score.
+    # Stable sort keeps seeds (1.0) ahead of lower-scored carried sources; carried
+    # sources that were themselves seeds (1.0) cluster just below this run's seeds.
+    rest = ranked_rows + carried_rows
+    rest.sort(key=lambda r: r.get("relevance_score") or 0.0, reverse=True)
+
+    # De-dupe by original_path: a seed always wins over a ranked/carried row.
     seen = {row.get("original_path") for row in seed_rows if row.get("original_path")}
-    ranked_rows = [r for r in ranked_rows if r.get("original_path") not in seen]
+    rest = [r for r in rest if r.get("original_path") not in seen]
 
-    return seed_rows + ranked_rows
+    return seed_rows + rest
 
 
 def count_wiki_pages(wiki_dir: Path | None) -> int:
@@ -195,6 +230,11 @@ def main() -> None:
         default=None,
         help="ISO-8601 created timestamp from a prior index.yaml. Used on append runs to preserve the original created date.",
     )
+    parser.add_argument(
+        "--existing-index",
+        default=None,
+        help="Path to a prior index.yaml whose sources are merged on append runs (union by original_path; new sources win). Omit on init.",
+    )
     args = parser.parse_args()
 
     research_dir = Path(args.research_dir)
@@ -203,8 +243,9 @@ def main() -> None:
 
     reranked_path = Path(args.reranked)
     seeds_path = Path(args.seeds) if args.seeds else None
+    existing_index_path = Path(args.existing_index) if args.existing_index else None
 
-    sources = load_sources(reranked_path, seeds_path)
+    sources = load_sources(reranked_path, seeds_path, existing_index_path)
     doc = build_doc(
         args.topic,
         args.input_summary,

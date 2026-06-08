@@ -77,7 +77,7 @@ show a plan; answer fast.
 ### Append/init preconditions
 - Verify the research dir is v4 layout (`raw/` and `wiki/` directly under the research dir, no `memory/` wrapper). If it's older (v1 with raw at root, or v3 with a `memory/` wrapper), migrate it to v4 first - or instruct the user to - before ingesting.
 - Read existing `index.yaml` for append modes. If `index.yaml` is missing but `index.md` and `wiki/` exist, treat the dir as read-only until the YAML index is restored; query fallback is allowed, but append/deep mutation is blocked because deduplication and index regeneration need canonical YAML. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in seed-only modes with an "already ingested" message.
-- Capture the existing `created` timestamp for append modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7.
+- Capture the existing `created` timestamp for append modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7. On append modes also pass the prior index via `--existing-index` so its existing sources are merged forward (Step 6.7 handles this) — otherwise the rebuild would keep only the newly-ingested sources.
 
 ### Seed-only skip list
 In **append-trusted**, **append-light**, and seed-only **init**, skip Steps 2 (configure
@@ -762,6 +762,14 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
 2. **Run `build_index_yaml.py`** to emit the canonical index:
    ```bash
    PRIOR_CREATED=$(grep '^created:' "<research_dir>/index.yaml" 2>/dev/null | awk -F"'" '{print $2}' || true)
+   # APPEND ONLY: snapshot the prior index so its existing sources are merged forward.
+   # Skip this on init (no prior index). The snapshot avoids any read/write aliasing on
+   # the same path and is removed in Step 7's *.json/scratch cleanup pass.
+   PRIOR_INDEX=""
+   if [ -f "<research_dir>/index.yaml" ]; then
+     PRIOR_INDEX="<research_dir>/.prior-index.yaml"
+     cp "<research_dir>/index.yaml" "$PRIOR_INDEX"
+   fi
    uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_yaml.py \
      --reranked "<research_dir>/reranked-final.json" \
      --seeds "<research_dir>/seeds-augmented.json" \
@@ -770,9 +778,17 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
      --input-summary "<input_summary>" \
      --rounds <rounds_completed> \
      ${PRIOR_CREATED:+--existing-created "$PRIOR_CREATED"} \
+     ${PRIOR_INDEX:+--existing-index "$PRIOR_INDEX"} \
      --output "<research_dir>/index.yaml"
+   rm -f "<research_dir>/.prior-index.yaml"
    ```
-   On init runs `PRIOR_CREATED` is empty (no prior index); on append runs it preserves the original `created` timestamp.
+   On init runs there is no prior `index.yaml`, so `PRIOR_CREATED`/`PRIOR_INDEX` are
+   empty and the index is built fresh from this run's seeds + results. On **append** runs
+   (`append-trusted`, `append-light`, `append-deep`) the prior index is snapshotted and
+   passed via `--existing-index`, so its existing sources are carried forward and unioned
+   with the new ones (deduped by `original_path`, new wins) — without this, an append
+   would rebuild the index from only the newly-ingested sources and **drop every
+   pre-existing source**. `--existing-created` preserves the original `created` timestamp.
 
 3. **Run `build_index_md.py`** to regenerate the Obsidian-readable view:
    ```bash

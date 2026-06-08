@@ -1,6 +1,6 @@
 ---
 name: research
-description: Build, extend, AND query a persistent LLM-maintained wiki for any research topic. Conversational entry point that routes between four modes — query (read-only Q&A against existing research with optional Q&A save-back), init (new topic ingest), append-deep (add sources to existing topic via short rounds), and append-trusted (add a single user-vouched file to existing topic). Ingests from your knowledge sources (Obsidian vault + Readwise + NotebookLM + GitHub repos + web seeds + user-dropped PDFs) and maintains a wiki layer (per-source pages, entities, concepts, comparisons, overview, synthesis, open questions, contradictions). Use for any research interaction — first-time research on a topic, "what do I have on X", "load my research on Y", "add this PDF to my research", "deep dive on Z", "pull together my notes on Y", "extend my research with this file". Trigger on the phrases above plus "search my research", "use my research", "find sources about X".
+description: Build, extend, AND query a persistent LLM-maintained wiki for any research topic. Conversational entry point that routes between five modes - query (fast read-only answer from existing wiki), append-trusted (add one known source), append-light (ingest a few provided sources only), append-deep (explicit discovery/deep research), and init (create a new research directory). Ingests from your knowledge sources (Obsidian vault + Readwise + NotebookLM + GitHub repos + YouTube videos + web seeds + user-dropped PDFs) and maintains a wiki layer (per-source pages, entities, concepts, comparisons, overview, synthesis, open questions, contradictions). Use for any research interaction - first-time research on a topic, "what do I have on X", "load my research on Y", "add this PDF to my research", "deep dive on Z", "pull together my notes on Y", "extend my research with this file". Trigger on the phrases above plus "search my research", "use my research", "find sources about X".
 user_invocable: true
 ---
 
@@ -10,34 +10,86 @@ You are a research orchestrator. The user gives you a brain dump — text, image
 
 The output is a self-contained **research research directory** with three layers — `index.yaml` / `index.md` (catalog), `wiki/` (synthesis), and `raw/` (immutable sources). Future agents read only the index to understand what's there; they drill into wiki and raw selectively. The full data contract lives in `CONVENTIONS.md`.
 
-## Step 0 — Detect ingest mode
+## Step 0 - Route the request
 
-Before processing the brain dump, classify the user's intent. Three modes:
+Before touching source CLIs or writing files, classify the user's intent. Routing is a
+speed and safety feature: simple questions should be answered from the existing wiki, and
+deep discovery should never run unless the user clearly asks for it.
 
-| Mode | Trigger | Pipeline |
-|---|---|---|
-| **query** | Existing research dir + user asks a question / wants to load context ("what do I have on X", "load my research on Y", filter / drill questions) | Read-only path. See **Query path** below. Optional Q&A save-back. |
-| **init** | New topic — no matching `working-dir/research-<topic-slug>/` exists | Full pipeline: Steps 1 → 8 |
-| **append-deep** | Existing research dir + user provides a brain dump or vague extension request ("ingest more on X", "find me more sources for my X research") | Step 1, then a short Step 4 (1–2 rounds at most), then Steps 5 → 8. The reranker compares against existing wiki for novelty; sources already in `index.yaml` are deduplicated. |
-| **append-trusted** | Existing research dir + user points at a specific file/URL/PDF ("add this PDF to my X research") | Skip rounds entirely. Process the seed via Step 1 + Step 6 + Step 6.2 + Step 6.3 (just the source_writer for the new source) + Step 6.4 (incremental wiki update) + Steps 6.5 → 8. |
+| Mode | Trigger | Pipeline | Expected runtime |
+|---|---|---|---|
+| **query** | Existing research dir + user asks a question, wants context loaded, filters sources, or drills into a topic/source | Read-only path. See **Query path** below. Optional Q&A save-back. No source CLI preflight, no discovery, no raw/wiki rewrite. | Seconds to <1 min |
+| **append-trusted** | Existing research dir + exactly one user-vouched source ("add this PDF/link/repo/video/note") | Seed-only ingest. Step 1 -> Step 6 -> Step 6.2 -> Step 6.3 for the new source -> incremental wiki update -> Steps 6.5-8. | ~1-5 min |
+| **append-light** | Existing research dir + a small provided set of sources, usually 2-5 URLs/files/repos/videos | Provided-source ingest only. No discovery rounds, no NLM sweep, no reranker. Seeds get `relevance_score: 1.0`; dedup against `index.yaml`; then Steps 1 and 6-8. | ~3-10 min |
+| **append-deep** | Existing research dir + explicit discovery request ("deep research", "find more sources", "run discovery", "exhaustive", "do rounds") | Discovery ingest. Step 1, Step 2, Step 3, Step 3b, Step 4, Step 5, then Steps 6-8. Dedup against existing `index.yaml`. | ~10-30+ min |
+| **init** | No matching research dir exists and the user wants a new research topic | Create `working-dir/research-<topic-slug>/`. If the user provided sources, default to seed-only init; if they explicitly ask for deep discovery, run the discovery pipeline after plan confirmation. | ~1-10 min seed-only, ~10-30+ min deep |
 
 **How to decide:**
 1. Compute the candidate `topic_slug` from the user's words (kebab-case).
-2. Check `working-dir/research-*/` for a directory whose `index.yaml` has a topic that matches (semantic match — the user might say "agent loops" when the dir is "agent-harnesses"). If there's a strong match, the mode is `append-*`. If there's no clear match, ask the user via `AskUserQuestion`: "Add to existing research on `<topic>` or start a new dir?"
-3. If the user dropped a single file with no other framing AND a research dir already exists for the topic → **append-trusted**.
-4. If the user wrote a brain dump AND a research dir exists → **append-deep**.
-5. Otherwise → **init**.
+2. Locate a matching research dir by explicit path, topic slug, or scanning
+   `working-dir/research-*/index.yaml` for a semantic topic match.
+3. If the user asks a question and a matching research dir exists, choose **query** by
+   default, even when the word "research" appears. Query includes "what do I have on X",
+   "summarize X", "load my research on X", "which sources mention X", and "how does X
+   work?"
+4. If the user provides exactly one known source and says to add/ingest it, choose
+   **append-trusted**.
+5. If the user provides a few concrete sources and says to add/ingest them, choose
+   **append-light**.
+6. Choose **append-deep** only when the user explicitly asks for discovery/deep research:
+   "deep", "find more sources", "discover", "run rounds", "search my sources for more",
+   "exhaustive", "comprehensive scan", or equivalent wording.
+7. Choose **init** when no matching research dir exists. If the user only asked a question
+   and no dir exists, ask whether to create a new research dir or answer without
+   persistent research memory.
+8. If multiple research dirs match, ask the user to choose. If intent is ambiguous,
+   default to **query** when a dir exists; otherwise show a plan and ask.
 
-### Append-* preconditions
-- Verify the research dir is v4 layout (`raw/` and `wiki/` directly under the research dir, no `memory/` wrapper). If it's older (v1 with raw at root, or v3 with a `memory/` wrapper), migrate it to v4 first — or instruct the user to — before ingesting.
-- Read existing `index.yaml`. The `original_path` set is the dedup key — sources already there are skipped during research rounds (append-deep) or refused with a "already ingested" message (append-trusted).
-- Capture the existing `created` timestamp; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7.
+### Routing plan / dry-run gate
 
-### Append-trusted skip list
-In append-trusted mode, the orchestrator ALSO skips: Steps 2 (configure rounds), 3 (initial queries), 3b (NLM discovery), 4 (research rounds), 5 (rerank). The user's seed gets `relevance_score: 1.0`, goes through Step 1 → Step 6 → wiki updates → Step 8. Total time: a few seconds plus one source_writer call.
+Before any ingest mode writes files or starts expensive work, show a short plan. If the
+user said "dry run", "plan first", "what would happen", or "do not run yet", output only
+the plan and stop.
 
-### Read before write (default to query)
-When intent is genuinely ambiguous, **default to query, not ingest.** Wrong dispatch is destructive (re-ingesting overwrites raw files; mis-routing a query as ingest wastes a research run). If you guessed wrong, the user will redirect — that's cheap. Ingest must be opt-in by an explicit verb ("research", "ingest", "add", "deep dive") OR by a file/URL/PDF drop.
+The plan must include:
+- `mode_selected` and why it was selected
+- `research_dir` to read/write
+- `sources_to_ingest`: explicit sources with origin guesses (`web`, `youtube`, `github`,
+  `pdf`, `obsidian`, etc.) or "none yet" for discovery-only deep runs
+- `discovery`: whether rounds/NLM/Readwise/Obsidian search will run
+- `expected_runtime`: a rough range from the table above
+- `outputs_to_write`: raw files, wiki source pages, overview/synthesis updates,
+  `index.yaml`, `index.md`, `log.md`
+- `skip_policy`: sources already in `index.yaml` are skipped; unavailable CLIs degrade
+  with warnings
+
+Ask for confirmation before proceeding when any of these are true:
+- mode is **append-deep**
+- mode is **init** with discovery/deep research
+- mode is **append-light** with more than 3 provided sources
+- expected runtime is clearly >5 minutes after considering the actual source types
+- the user explicitly requested a dry run / plan first
+
+For **append-trusted** and small low-cost **append-light** runs (<=3 simple sources), show
+the plan and proceed unless the user asked for confirmation first. For **query**, do not
+show a plan; answer fast.
+
+### Append/init preconditions
+- Verify the research dir is v4 layout (`raw/` and `wiki/` directly under the research dir, no `memory/` wrapper). If it's older (v1 with raw at root, or v3 with a `memory/` wrapper), migrate it to v4 first - or instruct the user to - before ingesting.
+- Read existing `index.yaml` for append modes. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in seed-only modes with an "already ingested" message.
+- Capture the existing `created` timestamp for append modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7.
+
+### Seed-only skip list
+In **append-trusted**, **append-light**, and seed-only **init**, skip Steps 2 (configure
+rounds), 3 (initial queries), 3b (NLM discovery), 4 (research rounds), and 5 (rerank).
+The user's seed sources get `relevance_score: 1.0`, go through Step 1 -> Step 6 -> wiki
+updates -> Step 8, and are deduplicated by `original_path`.
+
+### Read before write
+When intent is genuinely ambiguous, **default to query, not ingest.** Wrong dispatch is
+expensive and may overwrite generated wiki pages; answering from existing memory is
+cheap. Ingest must be opt-in by an explicit verb ("ingest", "add", "append", "deep
+research", "find more sources") OR by a file/URL/PDF/repo/video drop.
 
 ## Query path
 
@@ -206,12 +258,15 @@ When the caller is another skill (programmatic, not the user directly), drop the
 
 ## Step 0.5 — Preflight: source CLI availability (ingest modes only)
 
-This skill orchestrates external CLIs that may not be installed. **Before any ingest
-work (init / append modes — skip this for query mode), detect which source CLIs are
-present and gate each source on its CLI.** A missing CLI must never crash the run with a
+This skill orchestrates external CLIs that may not be installed. **Skip this entirely for
+query mode.** For ingest modes, only check the CLIs that the selected route can actually
+use. Seed-only modes (`append-trusted`, `append-light`, seed-only `init`) check
+seed-specific CLIs only: `git` for GitHub seeds, `bdata` for generic web seeds, and no
+Obsidian/Readwise/NLM discovery check. Discovery modes (`append-deep`, `init` with
+discovery) run the full source preflight. A missing CLI must never crash the run with a
 cryptic `command not found`; it must degrade gracefully with a clear, named warning.
 
-Run one detection pass and remember the result as `available_clis`:
+For discovery modes, run one detection pass and remember the result as `available_clis`:
 
 ```bash
 for cli in obsidian readwise nlm bdata git; do
@@ -223,9 +278,14 @@ for cli in obsidian readwise nlm bdata git; do
 done
 ```
 
-Degradation policy — apply per source. For every MISSING CLI, **emit a loud one-line
-warning to the user up front** (not silently), naming the CLI, the capability lost, the
-bundled usage skill, and that the run continues without it:
+For seed-only modes, build `available_clis` from the seed list: include `git` only if a
+GitHub seed is present, include `bdata` only if a generic web seed is present, and mark
+other source CLIs as `not_needed`.
+
+Degradation policy — apply per source. For every MISSING CLI that is relevant to the
+selected route, **emit a loud one-line warning to the user up front** (not silently),
+naming the CLI, the capability lost, the bundled usage skill, and that the run continues
+without it:
 
 | CLI | Powers | If MISSING → |
 |---|---|---|
@@ -239,9 +299,10 @@ YouTube ingestion does not require an API key. It uses public captions via
 `youtube-transcript-api`; videos with unavailable captions are skipped later by the
 builder with a clear per-video error.
 
-**Hard stop condition.** If `obsidian`, `readwise`, AND `nlm` are all MISSING **and** the
-brain dump carries no usable seeds (no web URL, no YouTube URL, no `git`-able GitHub repo, no local/web
-PDF), there is nothing to research. Stop and tell the user clearly:
+**Hard stop condition.** For discovery modes only: if `obsidian`, `readwise`, AND `nlm`
+are all MISSING **and** the brain dump carries no usable seeds (no web URL, no YouTube
+URL, no `git`-able GitHub repo, no local/web PDF), there is nothing to research. Stop and
+tell the user clearly:
 
 > ❌ No research sources available. Install at least one source CLI (`obsidian`,
 > `readwise`, or `nlm` — see their bundled skills) or include a seed URL/PDF, then re-run.
@@ -356,23 +417,36 @@ For every unique `https://github.com/<owner>/<repo>[...]` URL in the brain dump:
 
 Once the seed list is assembled (including the GitHub entries), write it to `<research_dir>/seeds.json` (shape: `{"seeds": [ ... ]}`) so the Builder Subagent (Step 6) can consume it without going back through the orchestrator's context.
 
-Use the content from seed URIs to enrich your understanding of the topic. Extract additional key themes, terminology, and concepts from them — these should inform the search queries you generate in step 3.
+Use the content from seed URIs to enrich your understanding of the topic. Extract additional key themes, terminology, and concepts from them. In discovery modes, these inform the search queries you generate in Step 3; in seed-only modes, they inform the per-source wiki pages and overview/synthesis updates.
 
 Summarize your understanding back to the user in 2-3 sentences so they can correct you if needed.
 
-## Step 2 — Configure the research
+## Step 2 — Configure discovery depth
 
-Use a single `AskUserQuestion` call to confirm three knobs. Show the defaults and let the user override any of them in one round-trip:
+Skip this step entirely for `query`, `append-trusted`, `append-light`, and seed-only
+`init`. Those modes do not run research rounds; set `rounds_completed: null` for trusted
+single-source ingest and `rounds_completed: 0` for light/seed-only ingest.
 
-1. **How many research rounds?** — default **3**. Each round spawns parallel searches across different angles of the topic; subsequent rounds fill gaps found in the previous one. Suggest 2 for a focused topic, 3 as the default, 4–5 for an exhaustive deep dive.
-2. **How many queries per round?** — default **6 for round 1, 3 for rounds 2+**. Round 1 casts a wide net; later rounds are narrower and gap-driven.
-3. **Topic slug** — short kebab-case name for the output directory (suggest one based on the topic).
+For `append-deep` or `init` with explicit discovery, ask only after showing the routing
+plan from Step 0:
 
-Capture the answers as `total_rounds`, `queries_per_round = (round1_count, subsequent_count)`, and `topic_slug`. Use the defaults when the user accepts them unchanged.
+1. **How many research rounds?** Default **1** for `append-deep`, **2** for `init` with
+   discovery. Suggest 3-5 only when the user explicitly asks for exhaustive coverage.
+2. **How many queries per round?** Default **4 for round 1, 2 for rounds 2+**. This keeps
+   new-user and demo runs practical while still allowing depth when requested.
+3. **Topic slug** - short kebab-case name for the output directory (suggest one based on
+   the topic).
+
+Capture the answers as `total_rounds`, `queries_per_round = (round1_count,
+subsequent_count)`, and `topic_slug`. Use the defaults when the user accepts them
+unchanged.
 
 ## Step 3 — Generate initial search queries
 
-Based on the brain dump, generate **exactly `queries_per_round[0]` queries** (default 6) that approach the topic from different angles. The goal is breadth — you want to cast a wide net on the first round.
+Run this step only for `append-deep` or `init` with explicit discovery. Seed-only modes
+skip directly to Step 6 after Step 1.
+
+Based on the brain dump, generate **exactly `queries_per_round[0]` queries** (default 4) that approach the topic from different angles. The goal is focused breadth - enough to discover missing context without turning a simple request into a long research run.
 
 Think about:
 - **Direct terms**: The obvious keywords
@@ -385,7 +459,13 @@ Write these queries down before spawning subagents — you'll refine them in lat
 
 ## Step 3b — Discover NotebookLM notebooks
 
-The source coverage rule is non-negotiable: **every ingest queries every NotebookLM notebook, every time. No heuristic filtering.** This is intentional — the reranker filters at the end; we cast the widest possible net here.
+Run this step only for `append-deep` or `init` with explicit discovery. Seed-only modes do
+not query NotebookLM.
+
+The source coverage rule for discovery modes is non-negotiable: **every discovery run
+queries every NotebookLM notebook, every time. No heuristic filtering.** This is
+intentional - the reranker filters at the end; we cast the widest possible net only when
+the user chose deep discovery.
 
 1. **Check presence, then authentication.** If `nlm` was MISSING in Step 0.5, skip this
    entire step: warn "⚠️ `nlm` CLI not found — skipping NotebookLM (see the `nlm-skill`)",
@@ -406,6 +486,8 @@ The source coverage rule is non-negotiable: **every ingest queries every Noteboo
 Cost trade-off: querying all notebooks scales with the size of the user's NLM library. For libraries above ~30 notebooks this can be slow — accept the cost; the reranker handles relevance filtering. If it becomes consistently painful, this is where a `--scope` knob would land (out of scope for now).
 
 ## Step 4 — Run research rounds
+
+Run this step only for `append-deep` or `init` with explicit discovery.
 
 For each round, spawn **one Research Subagent per query** in parallel using the Agent tool. Each subagent follows the instructions in `agents/researcher.md` (read that file and pass its content as the subagent prompt, along with the specific query and context).
 
@@ -463,6 +545,10 @@ Continue for N rounds (as configured in step 2).
 
 ## Step 5 — Rerank and filter for quality
 
+Skip this step for `append-trusted`, `append-light`, and seed-only `init`. For those
+routes, write `<research_dir>/reranked-results.json` as `{"results": []}` and continue to
+Step 6 with `seeds.json` only.
+
 The research rounds cast a wide net intentionally — now it's time to be selective. Spawn a **Reranker Subagent** that reads `agents/reranker.md` and scores every deduplicated candidate against the user's original intent.
 
 1. **Merge per-round deduped files** into a single candidates file via script (no LLM-side merging):
@@ -510,7 +596,7 @@ The Builder Subagent copies / fetches / pipes raw source content onto disk under
    - `skill_dir`: `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research` (absolute path)
    - `mode: "raw_only"` — explicitly tells the builder to skip `index.yaml` emission
 
-   If you already started the **seed-only** builder in Step 5, wait for it to finish before launching the full builder — the full run is idempotent.
+   In discovery modes, if you already started the **seed-only** builder in Step 5, wait for it to finish before launching the full builder - the full run is idempotent. In seed-only modes, launch the builder once with empty reranked results and the complete `seeds.json`.
 
 3. **The builder returns**:
    ```json
@@ -566,9 +652,9 @@ Collect the JSON outputs from each subagent. Aggregate them into a single in-mem
 - `entities_referenced` and `concepts_referenced` — counts per slug across sources (used in Step 6.4 to decide which entity/concept pages to write).
 - `suggested_new_entities` and `suggested_new_concepts` — candidates for new pages.
 
-## Step 6.3.5 — Discussion checkpoint (init + append-deep only; default ON for >3 sources)
+## Step 6.3.5 — Discussion checkpoint (discovery modes only; default ON for >3 sources)
 
-Before spawning the entity/concept writers in Step 6.4, surface the emerging shape to the user and let them redirect emphasis. **Skip this step entirely for append-trusted mode** (single source, no decision to make) and when the user says "skip discussion" up front. Skip it also for ingest passes that touched ≤ 3 new sources — the cost outweighs the benefit at small scale.
+Before spawning the entity/concept writers in Step 6.4, surface the emerging shape to the user and let them redirect emphasis. **Skip this step entirely for append-trusted, append-light, and seed-only init** unless the user explicitly asks for a discussion checkpoint. Skip it also when the user says "skip discussion" up front or when ingest passes touched <= 3 new sources - the cost outweighs the benefit at small scale.
 
 Compute and present (to the user, not via subagent):
 
@@ -637,7 +723,7 @@ If `open-questions.md` doesn't yet exist, create it with a header line: `# Open 
 
 Now that the wiki layer exists, build the canonical index. **Two scripts, in order:**
 
-1. **Augment the reranker JSON with `uri_source_page` and `assets`** for each source (via `jq` — never load JSON in your context):
+1. **Augment reranked results and seeds with `uri_source_page` and `assets`** for each source (via `jq` — never load JSON in your context):
    ```bash
    # For each source in reranked-results.json, add uri_source_page and assets fields
    # using the per-source mapping you built in Step 6.3.
@@ -645,6 +731,12 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
       '.results |= map(. + ($aug[0][.original_path] // {}))' \
       "<research_dir>/reranked-results.json" \
       > "<research_dir>/reranked-final.json"
+
+   # Do the same for seed sources; seed-only modes rely on this file.
+   jq --slurpfile aug "<research_dir>/source-augments.json" \
+      '.seeds |= map(. + ($aug[0][.original_path] // {}))' \
+      "<research_dir>/seeds.json" \
+      > "<research_dir>/seeds-augmented.json"
    ```
    Where `<research_dir>/source-augments.json` is a `{<original_path>: {uri_source_page: "...", assets: [...]}}` map you assembled from source_writer + asset-pipeline outputs.
 
@@ -680,7 +772,9 @@ cat >> "<research_dir>/log.md" <<EOF
 
 ## [$DATE] ingest | <topic> ($(echo <raw_files_count>) sources)
 
+- mode: <append-trusted | append-light | append-deep | init>
 - rounds: <rounds_completed>
+- expected runtime shown: <rough estimate from routing plan>
 - raw files added: <count>
 - wiki pages written: <count> sources, <count> entities, <count> concepts, overview + synthesis updated
 - open questions surfaced: <count>
@@ -713,6 +807,8 @@ The glob is safe: `index.yaml` is YAML (not JSON), and `raw/`/`wiki/` are subdir
 ## Step 8 — Present results
 
 Tell the user:
+- **Mode**: selected route (`query`, `append-trusted`, `append-light`, `append-deep`, or `init`) and whether discovery ran
+- **Runtime expectation**: the estimate shown before execution, plus whether the run stayed inside that expectation
 - **Sources**: "Found N sources across R rounds, scores range from S_min to S_max" + brief thematic breakdown
 - **Wiki**: "Wrote X source pages, Y entity pages, Z concept pages; overview + synthesis are at `wiki/overview.md` and `wiki/synthesis.md`"
 - **Open questions**: if any were surfaced, mention the count and point at `wiki/open-questions.md`

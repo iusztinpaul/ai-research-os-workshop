@@ -138,7 +138,7 @@ Output a single JSON blob to stdout:
       "source_idx": 0,
       "original_path": "...",
       "slug": "...",
-      "origin": "obsidian|readwise|web|notebooklm|github|pdf",
+      "origin": "obsidian|readwise|web|notebooklm|github|pdf|youtube",
       "uri_full": "raw/<slug>.md",
       "uri_highlights": "raw/<slug>-key-highlights.md or null"
     }

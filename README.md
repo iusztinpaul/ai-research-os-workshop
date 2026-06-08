@@ -24,6 +24,21 @@ The shared data contract lives in
 `plugins/obsidian-ai-os/skills/research/CONVENTIONS.md` (authoritative when a `SKILL.md`
 disagrees).
 
+#### `/research` routing modes
+
+`/research` routes simple requests before it starts any expensive source discovery:
+
+| Mode | Use when | Behavior |
+|---|---|---|
+| `query` | Ask from an existing research dir | Answers from `index.yaml` + `wiki/` first; no ingest or discovery. |
+| `append-trusted` | Add one known source | Ingests that source only. |
+| `append-light` | Add a few provided sources | Ingests provided sources only; no discovery rounds. |
+| `append-deep` | Explicitly request deep research/discovery | Runs source discovery, rounds, rerank, and wiki updates. |
+| `init` | Start a new research dir | Creates the dir; seed-only by default unless deep discovery is explicitly requested. |
+
+Before long runs, `/research` shows a plan with the selected mode, sources to ingest,
+expected runtime, and files it will write. Deep discovery is opt-in.
+
 ### Bundled CLI usage-skills
 
 The research family drives four external CLIs. Their **usage skills** are bundled so the

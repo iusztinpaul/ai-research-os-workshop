@@ -131,7 +131,7 @@ sources:
 ingest_log:
   - date: <YYYY-MM-DD>
     sources_added: <int>
-    rounds: <int or null>                 # null for trusted-single-source ingest
+    rounds: <int or null>                 # null for trusted single-source, 0 for light/seed-only ingest
 ```
 
 **Sort order in index.yaml**: seeds (score 1.0) first, then by `relevance_score` descending. Handled deterministically by `build_index_yaml.py` — never sort by hand.

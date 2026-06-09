@@ -1,126 +1,230 @@
 # obsidian-ai-os
 
-A Claude Code plugin that turns an **Obsidian vault** into a persistent,
-LLM-maintained research wiki. It ships the `/research-*` family of skills: build a
-research directory from your vault + reading library + notebooks + GitHub repos + the
-web, then query, lint, distill, and render it.
+Why not just ask Codex?
 
-Designed to be plugged into an Obsidian vault and installed as a **real Claude Code
-plugin** (no symlinks). Research output lives under `working-dir/` relative to where you
-run the skills.
+For simple questions, you should. If you have one repo, one link, or one quick question,
+open Codex or Claude Code and ask directly. That is faster.
+
+`obsidian-ai-os` is for the cases where research should compound over time.
+
+Codex gives you an answer. This gives Codex a reusable research workspace:
+
+- `raw/` - copied or fetched source material
+- `wiki/sources/` - per-source summaries
+- `wiki/concepts/`, `wiki/entities/`, `wiki/comparisons/` - reusable synthesis pages
+- `wiki/overview.md` and `wiki/synthesis.md` - the current thesis
+- `index.yaml` and `index.md` - the catalog future agents read first
+- `log.md` and `wiki/open-questions.md` - what happened and what to research next
+
+The point is not to replace Codex. The point is to stop re-researching the same topic
+every week.
+
+## What this is
+
+`obsidian-ai-os` is a set of local AI skills for building and querying a persistent
+research wiki from your own sources:
+
+- Obsidian notes
+- Readwise highlights
+- NotebookLM notebooks
+- GitHub repos
+- YouTube videos with public transcripts
+- web links
+- PDFs and local files
+
+Obsidian is optional. It is just a visual IDE for browsing the generated markdown wiki.
+The system can run purely through Codex or Claude Code from a normal working directory.
+
+## Slides and video
+
+- Slides: TODO - add link
+- Video: TODO - add link
+
+## Course
+
+This repo is a practical demo of agentic research workflows. If you want to go deeper
+into building production-grade AI agents, workflows, evals, and agent harnesses, check out
+the Towards AI Agentic AI Engineering Course:
+
+https://academy.towardsai.net
+
+## Architecture
+
+TODO - add architecture diagram here.
+
+Suggested shape:
+
+```text
+user question / sources
+        |
+        v
+  /research router
+        |
+        +--> query existing wiki
+        +--> append known sources
+        +--> run deep discovery
+        |
+        v
+ raw sources -> source pages -> concepts/entities/comparisons
+        |
+        v
+ index.yaml + overview.md + synthesis.md + open-questions.md
+```
+
+## Example
+
+TODO - add one complete example here.
+
+Suggested example:
+
+1. Start with a question and a few sources.
+2. Run `/research`.
+3. Show the generated `working-dir/research-<topic>/` directory.
+4. Ask a follow-up question that answers from the existing wiki instead of re-ingesting.
+5. Add a YouTube video or GitHub repo and show the wiki update.
+
+## When to use it
+
+Use this when:
+
+- you are researching a topic over multiple sessions
+- you want sources, summaries, claims, and open questions preserved
+- you want to compare several repos, papers, videos, or notes
+- you want future Codex / Claude runs to reuse prior research
+- you want a local markdown wiki you can inspect, edit, and version
+- you want deep research to write durable artifacts, not just a chat answer
+
+Do not use this when:
+
+- you have one simple question
+- you only need a quick answer from one link
+- you do not care about saving the result
+- you need a fully managed hosted knowledge base
+- you want semantic search infrastructure only, without an agent workflow
+
+## Compared to alternatives
+
+| Tool | Best for | Limitation | Where `obsidian-ai-os` fits |
+|---|---|---|---|
+| Codex one-shot | Fast answers, coding help, repo Q&A | The answer is not automatically turned into a durable research workspace | Use Codex directly for simple questions; use this when the research should be reused and extended |
+| NotebookLM | Chatting with a fixed set of uploaded sources | Less programmable, less agent-native, not designed around repo parsing, wiki updates, or repeated source ingestion loops | Creates local files, source pages, indexes, and synthesis that agents can keep editing |
+| Deep research agents | Broad discovery and synthesis | Often produce a one-time report | Stores the report as a living wiki with raw sources, open questions, and append workflows |
+| RAG / vector databases | Retrieval over large corpora | Infrastructure-heavy; retrieval alone does not create source pages, comparisons, or a thesis | Keeps the workflow lightweight and artifact-first; indexing is human/agent-readable |
+| `obsidian-ai-os` | Research that compounds across notes, repos, videos, links, and follow-up questions | More setup than a one-shot prompt | Gives Codex / Claude Code a reusable research workspace |
 
 ## Skills
 
-### Research family
-
 | Skill | What it does |
 |---|---|
-| `/research` | Conversational entry point. Init / append / query a per-topic research dir (`index.yaml` + `wiki/` + `raw/`). Ingests Obsidian, Readwise, NotebookLM, GitHub repos, web seeds, and dropped PDFs. |
-| `/research-distill` | Distil a research dir into a single compact `research.md` containing only the sources actually used by a piece of content. |
-| `/research-lint` | Health-check a research dir: orphans, missing hubs/comparisons, broken wikilinks, stale claims, contradictions, open questions. |
-| `/research-render` | Render wiki pages into Marp decks, matplotlib charts, Obsidian Canvases, or social content briefs, filed back into `wiki/renders/`. |
+| `/research` | Init, append, or query a per-topic research directory. |
+| `/research-distill` | Distill a research directory into a compact `research.md` for a specific piece of content. |
+| `/research-lint` | Health-check a research directory for orphan sources, broken links, stale claims, contradictions, and missing hubs. |
+| `/research-render` | Render wiki pages into slides, charts, canvases, or content briefs. |
 
 The shared data contract lives in
-`plugins/obsidian-ai-os/skills/research/CONVENTIONS.md` (authoritative when a `SKILL.md`
-disagrees).
+`plugins/obsidian-ai-os/skills/research/CONVENTIONS.md`.
 
-### Bundled CLI usage-skills
+## Research modes
 
-The research family drives four external CLIs. Their **usage skills** are bundled so the
-plugin is self-contained (each documents commands + auth):
-`obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli`. The CLI **binaries**
-themselves still install separately — see below.
+`/research` routes requests before doing expensive work:
+
+| Mode | Use when | Behavior |
+|---|---|---|
+| `query` | Ask from an existing research directory | Reads `index.yaml` and `wiki/`; no ingest or discovery. |
+| `append-trusted` | Add one known source | Ingests that source only. |
+| `append-light` | Add a few provided sources | Ingests provided sources only; no discovery rounds. |
+| `append-deep` | Explicitly request deep research | Runs source discovery, rounds, rerank, and wiki updates. |
+| `init` | Start a new research directory | Creates `working-dir/research-<topic>/`. |
+
+Deep discovery is opt-in. Long runs show a plan first: selected mode, sources to ingest,
+expected runtime, and files to write.
 
 ## Install
 
-Two ways to install — both run from inside your Obsidian vault (or wherever you want the
-skills available). No symlinks, no machine-specific paths.
+Run from your Obsidian vault root, project root, or any directory where you want
+`working-dir/` research outputs to be created.
 
-Skill scripts are referenced as `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/…`, so they resolve
-under **either** install method: `${CLAUDE_PLUGIN_ROOT}` when installed as a Claude Code
-plugin, or the `.claude/skills/` fallback when installed as plain skills.
-
-### Option A — Claude Code plugin marketplace (recommended)
-
-Fully supported: bundles every skill, script, and agent, and sets `${CLAUDE_PLUGIN_ROOT}`.
+### Option A - Claude Code plugin
 
 ```text
 /plugin marketplace add iusztinpaul/obsidian-ai-os
 /plugin install obsidian-ai-os@iusztinpaul
 ```
 
-`marketplace add` also accepts a full git URL (`https://github.com/iusztinpaul/obsidian-ai-os`)
-or a local clone path if you're developing it.
+### Option B - local skills
 
-### Option B — `npx skills` (Vercel skills CLI)
-
-Uses [`vercel-labs/skills`](https://github.com/vercel-labs/skills). The subcommand is
-`add` (there is no `npx skills install`); it copies skill folders into `.claude/skills/`.
-**Install into project scope** (the default — run from your vault root) so the
-`.claude/skills/` fallback resolves; avoid global `-g` for the script-running skills.
+Use this if you want to test locally without the marketplace plugin.
 
 ```bash
-# Browse everything in this repo (skills are nested under plugins/, so use --full-depth):
-npx skills add iusztinpaul/obsidian-ai-os --full-depth --list
+git clone https://github.com/iusztinpaul/obsidian-ai-os.git
+cd obsidian-ai-os
+# Optional, if you are testing a PR branch:
+# git checkout <branch-name>
 
-# Install a specific skill by its path (most reliable):
-npx skills add https://github.com/iusztinpaul/obsidian-ai-os/tree/main/plugins/obsidian-ai-os/skills/research -a claude-code
-
-# Or install all skills from the repo to Claude Code, non-interactively:
-npx skills add iusztinpaul/obsidian-ai-os --full-depth --all -a claude-code -y
+cd /path/to/your/vault-or-project
+mkdir -p .claude/skills
+cp -R /path/to/obsidian-ai-os/plugins/obsidian-ai-os/skills/* .claude/skills/
 ```
 
-Install at least `research` (the others — `research-lint`, `research-render` — call its
-`build_index_md.py`), plus the source-CLI usage skills you want (`obsidian-cli`,
-`readwise-cli`, `nlm-skill`, `brightdata-cli`). Keep them in the same scope.
+Then open Claude Code or Codex from that directory and run `/research`.
 
 ## Dependencies
 
-### Python — zero setup
+Install `uv` first:
 
-The helper scripts carry **PEP 723 inline metadata** and are invoked with
-`uv run --script …`, so `uv` auto-installs each script's deps into an isolated env on
-first run, regardless of the current directory. Nothing to install by hand. (A root
-`pyproject.toml` is included for local dev only; the skills don't depend on it.)
+```bash
+# macOS
+brew install uv
 
-Per-script deps: `pyyaml` (index + lint), `httpx` (image download), `pymupdf` +
-`pymupdf4llm` (PDF extraction), `matplotlib` (chart render).
+# Windows
+winget install --id=astral-sh.uv -e
+```
 
-Requires [`uv`](https://docs.astral.sh/uv/) on PATH.
+The helper scripts use `uv run --script`, so script dependencies install into isolated
+environments automatically.
 
-### External CLI binaries (install separately)
+Per-script dependencies include `pyyaml`, `httpx`, `pymupdf`, `pymupdf4llm`,
+`youtube-transcript-api`, and `matplotlib`.
 
-These power the research *sources*. `/research` runs a **Step 0.5 preflight** (`command -v`)
-that detects which CLIs are installed and, for each missing one, prints a clear one-line
-warning naming the lost capability + the bundled skill, then continues with whatever is
-available — a missing CLI never crashes the run with `command not found`. If a web seed's
-`bdata` is missing it falls back to WebFetch; if NotebookLM/Readwise/Obsidian are missing
-those sources are skipped with a warning. If **all** source CLIs are missing and there are
-no seeds, it stops with an explicit "no sources available — install one of …" message.
+## Source CLIs
 
-| CLI | Install | Auth | Used by |
-|---|---|---|---|
-| `obsidian` | install the Obsidian CLI on your PATH (see `obsidian-cli` skill) | points at your vault | `/research` vault search |
-| `readwise` | `npm install -g @readwise/cli` | `readwise login-with-token <token>` | `/research` Readwise library + feed |
-| `nlm` | see `nlm-skill` (Go CLI) | `nlm login` (sessions ~20 min) | `/research` NotebookLM |
-| `bdata` / `brightdata` | `curl -fsSL https://cli.brightdata.com/install.sh \| bash` or `npm install -g @brightdata/cli` (Node ≥ 20) | `bdata login` | `/research` web crawl (WebFetch fallback) |
-| `marp` *(optional)* | Marp CLI or Obsidian Marp plugin | — | viewing `/research-render marp` output |
-| `git` | system git | — | `/research` GitHub repo ingestion |
+These are optional source connectors. Missing CLIs degrade gracefully: `/research` warns
+you and continues with the sources it can access.
 
-### Assumes an Obsidian vault
+| CLI | Used for | Setup |
+|---|---|---|
+| `obsidian` | Search local Obsidian notes | Enable Obsidian CLI in Obsidian settings. On Windows, the skill also tries `%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com`. |
+| `readwise` | Search Readwise library and feed | `npm install -g @readwise/cli`, then authenticate. |
+| `nlm` | Search NotebookLM notebooks | See the bundled `nlm-skill`. |
+| `bdata` / `brightdata` | Higher-fidelity web crawling | Install Bright Data CLI and authenticate. WebFetch fallback is used if missing. |
+| `git` | Ingest GitHub repos | Install system Git. |
+| YouTube captions | Ingest public YouTube transcripts | No API key required. Public captions must be available. |
 
-`/research` reads your vault as a source (via the `obsidian` CLI) and detects Readwise
-highlights synced into it. Run the skills from your vault root; research dirs are created
-at `working-dir/research-<topic-slug>/` relative to that.
+## Output layout
 
-## What was removed / not included
+Research outputs are created under:
 
-- **`/research-promote`** — dropped. It graduated wiki pages into a specific PARA
-  Second-Brain layout (`6 - Notes/` etc., templates, tagging rules); that vault-shape
-  dependency is out of scope for a standalone plugin.
-- **`*-guideline-create` handoffs** — removed from `/research-render`'s brief format. A
-  brief is now just a copy-ready seed you paste wherever you like.
-- **scrabble `resources/`** (profiles, datasets, glossary) — never referenced by the
-  research family; not moved.
+```text
+working-dir/research-<topic>/
+  index.yaml
+  index.md
+  log.md
+  raw/
+  wiki/
+    overview.md
+    synthesis.md
+    open-questions.md
+    sources/
+    concepts/
+    entities/
+    comparisons/
+```
 
-See `DEPENDENCIES.md` for the full rationale.
+`index.yaml` is the canonical machine-readable catalog. `index.md` is the
+Obsidian-friendly view.
+
+## Notes
+
+- Obsidian is not required. It is useful for visualizing the generated markdown wiki.
+- YouTube ingestion uses public transcripts and requires no Gemini/OpenAI key.
+- See `DEPENDENCIES.md` for dependency rationale and removed older features.

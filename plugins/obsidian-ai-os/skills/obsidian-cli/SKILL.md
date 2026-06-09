@@ -7,6 +7,21 @@ description: Interact with Obsidian vaults using the Obsidian CLI to read, creat
 
 Use the `obsidian` CLI to interact with a running Obsidian instance. Requires Obsidian to be open.
 
+## Install / Enable
+
+Obsidian 1.12.7+ ships the CLI with the desktop app. Enable it in Obsidian:
+Settings > General > Advanced > Command line interface.
+
+On Windows, the executable is commonly:
+
+```powershell
+%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com
+```
+
+If `obsidian` is not on PATH but that executable works, either call it by full path or set
+`OBSIDIAN_CLI` to that path. `/research` will also try this Windows default path during
+preflight.
+
 ## Command reference
 
 Run `obsidian help` to see all available commands. This is always up to date. Full docs: https://help.obsidian.md/cli

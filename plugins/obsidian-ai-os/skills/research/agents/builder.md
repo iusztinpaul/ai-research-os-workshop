@@ -62,6 +62,18 @@ printf '%s' "$FETCHED_MARKDOWN" > "<research_dir>/raw/web-<slug>.md"
 ```
 If `fetched_markdown` is empty/missing (e.g. the seed was added without pre-fetching), crawl it now with Bright Data — `bdata scrape "<source_url>" -o "<research_dir>/raw/web-<slug>.md"` (see the `/brightdata-cli` skill), falling back to WebFetch if `bdata` is unavailable. Set `uri_highlights: null`, `uri_full: "raw/web-<slug>.md"`. If every fetch fails, record the source as skipped.
 
+**YouTube sources** (`origin: "youtube"`) - Layer 3 only. The user-provided video is converted to timestamped research markdown from public YouTube captions. No API key is required, but the video must expose a usable public transcript/caption track.
+
+```bash
+uv run --script "${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/youtube_extract_transcript.py" \
+  --url "<youtube_url_or_source_url>" \
+  --output-md "<research_dir>/raw/youtube-<slug>.md" \
+  --output-json "<research_dir>/youtube-<slug>.json" \
+  --timestamp-interval 30
+```
+
+Set `uri_highlights: null`, `uri_full: "raw/youtube-<slug>.md"`, `transcript_source: "transcript_api"`, `timestamps_available: true`, and preserve the script metadata fields (`youtube_video_id`, `youtube_channel`, `transcript_language`, `transcript_language_code`, `transcript_is_generated`, `summary`, `title`) when it returns them. If the script exits non-zero, record the source as skipped with the error from the JSON output. Do not fall back to generic web scraping for YouTube videos; it loses the timestamped transcript signal.
+
 **NotebookLM notes** (`origin: "notebooklm"`, `nlm_content_type: "note"`) — Layer 3 only (the note IS the complete user-authored content; there is no separate full document to unfold to):
 ```bash
 nlm note get <nlm_source_id> > "<research_dir>/raw/nlm-<slug>.md" 2>&1 || echo "nlm note get failed" > "<research_dir>/raw/nlm-<slug>.md"
@@ -86,7 +98,7 @@ cp -a "<staged_repo_dir>"/. "<research_dir>/raw/<repo-slug>/"
 - Set `uri_highlights: null`, `uri_full: "wiki/repos/<repo-slug>/ARCHITECTURE.md"`. **GitHub is the only origin where `uri_full` points into `wiki/`** — the spec docs are curated synthesis, not raw source. The actual source code lives at `github_repo_url` (pinned by `github_commit_sha`); we don't keep a copy under `raw/`. If the staged ARCHITECTURE is missing, record as skipped.
 - Never index a module doc separately — it reaches readers through the links inside ARCHITECTURE.
 
-**Slug rule** — slugify the `title` to kebab-case, strip special characters, cap at 60 characters. For Readwise prepend `readwise-`, for NLM prepend `nlm-`, for web prepend `web-`. GitHub sources use the repo-subfolder layout above and do NOT use the flat `<slug>.md` convention.
+**Slug rule** — slugify the `title` to kebab-case, strip special characters, cap at 60 characters. For Readwise prepend `readwise-`, for NLM prepend `nlm-`, for YouTube prepend `youtube-`, for web prepend `web-`. GitHub sources use the repo-subfolder layout above and do NOT use the flat `<slug>.md` convention.
 
 ### Step 3: Attach uri fields to the JSON
 
@@ -126,7 +138,7 @@ Output a single JSON blob to stdout:
       "source_idx": 0,
       "original_path": "...",
       "slug": "...",
-      "origin": "obsidian|readwise|web|notebooklm|github|pdf",
+      "origin": "obsidian|readwise|web|notebooklm|github|pdf|youtube",
       "uri_full": "raw/<slug>.md",
       "uri_highlights": "raw/<slug>-key-highlights.md or null"
     }

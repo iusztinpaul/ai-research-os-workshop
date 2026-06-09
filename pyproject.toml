@@ -13,6 +13,7 @@ requires-python = ">=3.12"
 #   - httpx         research/scripts/download_assets.py (image fetch)
 #   - pymupdf       research/scripts/extract_pdf.py (PDF parsing)
 #   - pymupdf4llm   research/scripts/extract_pdf.py (PDF -> markdown)
+#   - youtube-transcript-api  research/scripts/youtube_extract_transcript.py (YouTube captions)
 #   - matplotlib    research-render chart_writer (generated .py charts)
 dependencies = [
     "pyyaml>=6.0.1",
@@ -20,6 +21,7 @@ dependencies = [
     "pymupdf>=1.24.0",
     "pymupdf4llm>=0.0.17",
     "matplotlib>=3.8.0",
+    "youtube-transcript-api>=1.2.0",
 ]
 
 [tool.uv]

@@ -1,4 +1,7 @@
-# obsidian-ai-os
+# obsidian-ai-os workshop
+
+This is the repo for the workshop at the **AI Engineer World's Fair** conference,
+presented by Louis-François Bouchard and Paul Iusztin.
 
 Why not just ask Codex?
 
@@ -37,8 +40,8 @@ The system can run purely through Codex or Claude Code from a normal working dir
 
 ## Slides and video
 
-- Slides: TODO - add link
-- Video: TODO - add link
+- Slides: [] (coming soon)
+- Video: [] (coming soon)
 
 ## Course
 
@@ -141,32 +144,59 @@ expected runtime, and files to write.
 
 ## Install
 
-Run from your Obsidian vault root, project root, or any directory where you want
-`working-dir/` research outputs to be created.
+You only need three things to get going:
 
-### Option A - Claude Code plugin
+1. **Claude Code** (or Codex) — the agent that runs the skills.
+2. **`uv`** — runs the helper scripts (see [Dependencies](#dependencies)).
+3. **This plugin** — installed with one of the two options below.
+
+Always run the agent from the directory where you want research saved: your Obsidian
+vault root, a project root, or any working folder. Research outputs are created in a
+`working-dir/` subfolder of wherever you start.
+
+### Option A - Claude Code plugin (recommended)
+
+Inside Claude Code, run:
 
 ```text
 /plugin marketplace add iusztinpaul/obsidian-ai-os
 /plugin install obsidian-ai-os@iusztinpaul
 ```
 
-### Option B - local skills
+That's it — the `/research`, `/research-distill`, `/research-lint`, and
+`/research-render` skills are now available everywhere you use Claude Code.
 
-Use this if you want to test locally without the marketplace plugin.
+### Option B - local skills (for testing or development)
+
+Use this if you want to edit the skills, test a PR branch, or run without the
+marketplace plugin.
 
 ```bash
 git clone https://github.com/iusztinpaul/obsidian-ai-os.git
-cd obsidian-ai-os
-# Optional, if you are testing a PR branch:
-# git checkout <branch-name>
 
+# from the vault or project where you want to use the skills:
 cd /path/to/your/vault-or-project
 mkdir -p .claude/skills
 cp -R /path/to/obsidian-ai-os/plugins/obsidian-ai-os/skills/* .claude/skills/
 ```
 
-Then open Claude Code or Codex from that directory and run `/research`.
+To test a specific branch, `git checkout <branch-name>` in the clone before copying.
+
+> Tip: instead of copying, symlink the skills so your edits are picked up live:
+> `ln -s /path/to/obsidian-ai-os/plugins/obsidian-ai-os/skills/research .claude/skills/research`
+
+### First run
+
+1. Open Claude Code or Codex from your vault/project directory.
+2. Type `/` and confirm `research` appears in the skill list (this verifies the install).
+3. Run `/research` with a topic and a couple of sources, for example:
+   `/research compare LangGraph and CrewAI for multi-agent orchestration`.
+4. Inspect the generated `working-dir/research-<topic>/` directory.
+5. Ask a follow-up — the agent answers from the existing wiki instead of re-ingesting.
+
+If a source CLI is missing, `/research` warns you and continues with what it can reach,
+so you can start with zero extra setup and add connectors later (see
+[Source CLIs](#source-clis)).
 
 ## Dependencies
 
@@ -222,6 +252,62 @@ working-dir/research-<topic>/
 
 `index.yaml` is the canonical machine-readable catalog. `index.md` is the
 Obsidian-friendly view.
+
+## Extending it - add your own feature
+
+Every feature in this repo is a **skill**: a folder with a `SKILL.md` (the instructions
+the agent reads) plus optional helper `scripts/` and `agents/`. The plugin is just a
+bundle of these skill folders. Adding a feature means adding a new skill folder.
+
+### Anatomy of a skill
+
+```text
+plugins/obsidian-ai-os/skills/<your-skill>/
+  SKILL.md          # required - frontmatter + instructions
+  scripts/          # optional - uv run --script helpers
+  agents/           # optional - sub-agent prompts
+```
+
+`SKILL.md` starts with frontmatter that tells the agent when to invoke it:
+
+```markdown
+---
+name: my-skill
+description: One sentence on what it does and the phrases that should trigger it.
+user_invocable: true
+---
+
+# My Skill
+
+Step-by-step instructions the agent follows when the skill runs.
+```
+
+The `description` is what the agent matches against, so make it specific and list the
+trigger phrases. Study the existing skills — `research-lint` is the simplest, `research`
+is the most complete reference.
+
+### Add a feature in four steps
+
+1. **Create the folder.** Copy the closest existing skill as a starting point:
+   `cp -R plugins/obsidian-ai-os/skills/research-lint plugins/obsidian-ai-os/skills/my-skill`
+2. **Edit `SKILL.md`.** Update the `name`, `description`, and instructions. Reuse the
+   shared data contract in `plugins/obsidian-ai-os/skills/research/CONVENTIONS.md` so your
+   skill reads and writes the same `index.yaml` / `wiki/` layout as the others.
+3. **Test locally** with Option B above (symlink the skill into `.claude/skills/`), open
+   Claude Code, and confirm `/my-skill` appears and runs as expected.
+4. **Register and ship it.** The skill is auto-discovered by the plugin folder, so no
+   manifest edit is required to run it locally. When you want it in the published plugin,
+   update the description in `.claude-plugin/marketplace.json` and
+   `plugins/obsidian-ai-os/.claude-plugin/plugin.json`, then open a PR.
+
+### Helper scripts
+
+Put reusable logic in `scripts/` and call it with `uv run --script`. Declare
+dependencies inline with [PEP 723](https://peps.python.org/pep-0723/) script metadata so
+`uv` installs them into an isolated environment automatically — no global installs, no
+`requirements.txt`. See
+`plugins/obsidian-ai-os/skills/research/scripts/youtube_extract_transcript.py` for a
+complete example.
 
 ## Notes
 

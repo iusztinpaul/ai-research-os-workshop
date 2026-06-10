@@ -1,7 +1,9 @@
 # obsidian-ai-os workshop
 
 This is the repo for the workshop at the **AI Engineer World's Fair** conference,
-presented by Louis-François Bouchard and Paul Iusztin.
+presented by Louis-François Bouchard ([X](https://x.com/Whats_AI) ·
+[LinkedIn](https://www.linkedin.com/in/whats-ai/)) and Paul Iusztin
+([X](https://x.com/pauliusztin_) · [LinkedIn](https://www.linkedin.com/in/pauliusztin/)).
 
 Why not just ask Codex?
 

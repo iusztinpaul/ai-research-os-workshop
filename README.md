@@ -1,4 +1,4 @@
-# obsidian-ai-os workshop
+# ai-research-os-workshop workshop
 
 This is the repo for the workshop at the **AI Engineer World's Fair** conference,
 presented by Louis-François Bouchard ([X](https://x.com/Whats_AI) ·

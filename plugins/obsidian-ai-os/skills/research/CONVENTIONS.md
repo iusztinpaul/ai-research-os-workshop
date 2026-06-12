@@ -101,7 +101,7 @@ sources:
     authors: [<string>, ...]
     published_date: <YYYY-MM-DD or null>
     publication: <string>
-    relevance_score: <float 0.0–1.0>     # 1.0 = seed (user-provided), <1.0 = ranked
+    relevance_score: <float 0.0–1.0>     # 1.0 = seed (user-provided); 0.8 = high / 0.5 = medium (from the researcher relevance tag)
     summary: <string>
     tags: [<string>, ...]
     uri_full: raw/<filename>              # Layer 3
@@ -131,7 +131,7 @@ sources:
 ingest_log:
   - date: <YYYY-MM-DD>
     sources_added: <int>
-    rounds: <int or null>                 # null for trusted single-source, 0 for light/seed-only ingest
+    rounds: <int or null>                 # 0 for append (seed-only ingest); 1/2/3 for deep (fast/light/deep)
 ```
 
 **Sort order in index.yaml**: seeds (score 1.0) first, then by `relevance_score` descending. Handled deterministically by `build_index_yaml.py` — never sort by hand.

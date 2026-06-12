@@ -1,6 +1,6 @@
 ---
 name: research
-description: Build, extend, AND query a persistent LLM-maintained wiki for any research topic. Conversational entry point that routes between five modes - query (fast read-only answer from existing wiki), append-trusted (add one known source), append-light (ingest a few provided sources only), append-deep (explicit discovery/deep research), and init (create a new research directory). Ingests from your knowledge sources (Obsidian vault + Readwise + NotebookLM + GitHub repos + YouTube videos + web seeds + user-dropped PDFs) and maintains a wiki layer (per-source pages, entities, concepts, comparisons, overview, synthesis, open questions, contradictions). Use for any research interaction - first-time research on a topic, "what do I have on X", "load my research on Y", "add this PDF to my research", "deep dive on Z", "pull together my notes on Y", "extend my research with this file". Trigger on the phrases above plus "search my research", "use my research", "find sources about X".
+description: Build, extend, AND query a persistent LLM-maintained wiki for any research topic. Conversational entry point that routes between four modes - query (fast read-only answer from existing wiki), append (ingest the sources the user provided, no discovery), deep (explicit discovery/deep research at a fast/light/deep depth preset), and init (create a new research directory). Ingests from your knowledge sources (Obsidian vault + Readwise + NotebookLM + GitHub repos + YouTube videos + web seeds + user-dropped PDFs) and maintains a wiki layer (per-source pages, entities, concepts, comparisons, overview, synthesis, open questions, contradictions). Use for any research interaction - first-time research on a topic, "what do I have on X", "load my research on Y", "add this PDF to my research", "deep dive on Z", "pull together my notes on Y", "extend my research with this file". Trigger on the phrases above plus "search my research", "use my research", "find sources about X".
 user_invocable: true
 ---
 
@@ -19,10 +19,9 @@ deep discovery should never run unless the user clearly asks for it.
 | Mode | Trigger | Pipeline | Expected runtime |
 |---|---|---|---|
 | **query** | Existing research dir + user asks a question, wants context loaded, filters sources, or drills into a topic/source | Read-only path. See **Query path** below. Optional Q&A save-back. No source CLI preflight, no discovery, no raw/wiki rewrite. | Seconds to <1 min |
-| **append-trusted** | Existing research dir + exactly one user-vouched source ("add this PDF/link/repo/video/note") | Seed-only ingest. Step 1 -> Step 6 -> Step 6.2 -> Step 6.3 for the new source -> incremental wiki update -> Steps 6.5-8. | ~1-5 min |
-| **append-light** | Existing research dir + a small provided set of sources, usually 2-5 URLs/files/repos/videos | Provided-source ingest only. No discovery rounds, no NLM sweep, no reranker. Seeds get `relevance_score: 1.0`; dedup against `index.yaml`; then Steps 1 and 6-8. | ~3-10 min |
-| **append-deep** | Existing research dir + explicit discovery request ("deep research", "find more sources", "run discovery", "exhaustive", "do rounds") | Discovery ingest. Step 1, Step 2, Step 3, Step 3b, Step 4, Step 5, then Steps 6-8. Dedup against existing `index.yaml`. | ~10-30+ min |
-| **init** | No matching research dir exists and the user wants a new research topic | Create `working-dir/research-<topic-slug>/`. If the user provided sources, default to seed-only init; if they explicitly ask for deep discovery, run the discovery pipeline after plan confirmation. | ~1-10 min seed-only, ~10-30+ min deep |
+| **append** | User provides one or more sources to add (drops files/links/repos/videos/PDFs, or says "add this", "just ingest these", "don't run deep research") | Ingest the provided sources only — **no discovery**, no NLM sweep, no naming sub-tiers. Seeds get `relevance_score: 1.0`; dedup against `index.yaml`; Step 1 -> Steps 6-8. | ~1-10 min |
+| **deep** | User explicitly asks for discovery ("deep research", "find more sources", "discover", "exhaustive"), **or** confirms it at the deep-research gate below. Runs at a depth preset: `fast` / `light` / `deep`. | Discovery. Step 1, Step 2 (pick the preset), Step 3, Step 3b, Step 4, Step 5, then Steps 6-8. Dedup against existing `index.yaml`. | fast ~5-10 min · light ~10-20 min · deep ~20-40+ min |
+| **init** | No matching research dir exists and the user wants a new research topic | Create `working-dir/research-<topic-slug>/`, then run **append** or **deep** by the same rules (the deep-research gate applies if sources/links were provided). | ~1-10 min append · ~10-40+ min deep |
 
 **How to decide:**
 1. Compute the candidate `topic_slug` from the user's words (kebab-case).
@@ -32,18 +31,35 @@ deep discovery should never run unless the user clearly asks for it.
    default, even when the word "research" appears. Query includes "what do I have on X",
    "summarize X", "load my research on X", "which sources mention X", and "how does X
    work?"
-4. If the user provides exactly one known source and says to add/ingest it, choose
-   **append-trusted**.
-5. If the user provides a few concrete sources and says to add/ingest them, choose
-   **append-light**.
-6. Choose **append-deep** only when the user explicitly asks for discovery/deep research:
-   "deep", "find more sources", "discover", "run rounds", "search my sources for more",
-   "exhaustive", "comprehensive scan", or equivalent wording.
-7. Choose **init** when no matching research dir exists. If the user only asked a question
+4. **If the input carries any sources/links to add** (URLs, dropped files, PDFs, GitHub
+   repos, YouTube videos, vault notes):
+   - The user already opted **out** of discovery ("just ingest", "add these", "don't run
+     deep research", "no discovery") → choose **append**.
+   - The user already asked **for** discovery ("deep research", "find more sources",
+     "discover", "run rounds", "exhaustive") → choose **deep** and pick the preset in Step 2.
+   - **Neither stated → run the deep-research gate below before doing anything expensive.**
+5. Choose **init** when no matching research dir exists. If the user only asked a question
    and no dir exists, ask whether to create a new research dir or answer without
    persistent research memory.
-8. If multiple research dirs match, ask the user to choose. If intent is ambiguous,
-   default to **query** when a dir exists; otherwise show a plan and ask.
+6. If multiple research dirs match, ask the user to choose. If intent is ambiguous and a
+   dir exists, default to **query**.
+
+### Deep-research gate
+
+Whenever the input carries sources/links to add **and** the user hasn't already said which
+way they want it, ask one short question before ingesting anything:
+
+> You gave me **N source(s)**. Want me to **just ingest** them, or **run deep research** to
+> discover more from your knowledge sources? If deep research, which depth —
+> **fast** (1 round, 3 queries), **light** (2 rounds, 3 + 2), or **deep** (3 rounds, 3 each)?
+
+- "just ingest" / "don't run deep research" → **append**.
+- a depth choice (`fast` / `light` / `deep`) → **deep** at that preset; you already have the
+  preset, so skip the Step 2 question.
+
+Skip this gate only when the user already made the call explicitly in their message, or for
+**query**. This gate is the one place deep research is opt-in — never start discovery rounds
+without the user choosing them here (or in their original message).
 
 ### Routing plan / dry-run gate
 
@@ -64,26 +80,25 @@ The plan must include:
   with warnings
 
 Ask for confirmation before proceeding when any of these are true:
-- mode is **append-deep**
+- mode is **deep** (the deep-research gate already captured this choice + preset — just show
+  the plan and proceed; only re-confirm if the runtime estimate is large)
 - mode is **init** with discovery/deep research
-- mode is **append-light** with more than 3 provided sources
 - expected runtime is clearly >5 minutes after considering the actual source types
 - the user explicitly requested a dry run / plan first
 
-For **append-trusted** and small low-cost **append-light** runs (<=3 simple sources), show
-the plan and proceed unless the user asked for confirmation first. For **query**, do not
-show a plan; answer fast.
+For **append**, show the plan and proceed unless the user asked for confirmation first. For
+**query**, do not show a plan; answer fast.
 
 ### Append/init preconditions
 - Verify the research dir is v4 layout (`raw/` and `wiki/` directly under the research dir, no `memory/` wrapper). If it's older (v1 with raw at root, or v3 with a `memory/` wrapper), migrate it to v4 first - or instruct the user to - before ingesting.
-- Read existing `index.yaml` for append modes. If `index.yaml` is missing but `index.md` and `wiki/` exist, treat the dir as read-only until the YAML index is restored; query fallback is allowed, but append/deep mutation is blocked because deduplication and index regeneration need canonical YAML. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in seed-only modes with an "already ingested" message.
-- Capture the existing `created` timestamp for append modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7. On append modes also pass the prior index via `--existing-index` so its existing sources are merged forward (Step 6.7 handles this) — otherwise the rebuild would keep only the newly-ingested sources.
+- Read existing `index.yaml` for **append** and **deep** modes. If `index.yaml` is missing but `index.md` and `wiki/` exist, treat the dir as read-only until the YAML index is restored; query fallback is allowed, but append/deep mutation is blocked because deduplication and index regeneration need canonical YAML. The `original_path` set is the dedup key - sources already there are skipped during research rounds and refused/skipped in **append** mode with an "already ingested" message.
+- Capture the existing `created` timestamp for **append** and **deep** modes; pass it as `--existing-created` to `build_index_yaml.py` in Step 6.7. On these modes also pass the prior index via `--existing-index` so its existing sources are merged forward (Step 6.7 handles this) — otherwise the rebuild would keep only the newly-ingested sources.
 
 ### Seed-only skip list
-In **append-trusted**, **append-light**, and seed-only **init**, skip Steps 2 (configure
-rounds), 3 (initial queries), 3b (NLM discovery), 4 (research rounds), and 5 (rerank).
-The user's seed sources get `relevance_score: 1.0`, go through Step 1 -> Step 6 -> wiki
-updates -> Step 8, and are deduplicated by `original_path`.
+In **append** and seed-only **init**, skip Steps 2 (configure depth), 3 (initial queries),
+3b (NLM discovery), 4 (research rounds), and 5 (merge/dedup/score). The user's seed sources
+get `relevance_score: 1.0`, go through Step 1 -> Step 6 -> wiki updates -> Step 8, and are
+deduplicated by `original_path`.
 
 ### Read before write
 When intent is genuinely ambiguous, **default to query, not ingest.** Wrong dispatch is
@@ -266,9 +281,9 @@ When the caller is another skill (programmatic, not the user directly), drop the
 
 This skill orchestrates external CLIs that may not be installed. **Skip this entirely for
 query mode.** For ingest modes, only check the CLIs that the selected route can actually
-use. Seed-only modes (`append-trusted`, `append-light`, seed-only `init`) check
+use. Seed-only modes (`append`, seed-only `init`) check
 seed-specific CLIs only: `git` for GitHub seeds, `bdata` for generic web seeds, and no
-Obsidian/Readwise/NLM discovery check. Discovery modes (`append-deep`, `init` with
+Obsidian/Readwise/NLM discovery check. Discovery modes (`deep`, `init` with
 discovery) run the full source preflight. A missing CLI must never crash the run with a
 cryptic `command not found`; it must degrade gracefully with a clear, named warning.
 
@@ -367,7 +382,7 @@ If the brain dump contains URIs, process them before moving to step 2:
 7. **Local PDFs** (e.g., a path ending in `.pdf` from the user's filesystem, including paths inside the vault like `Media/some-paper.pdf`): Treat as a first-class seed. The actual extraction happens in Step 6.2 via `scripts/extract_pdf.py` — at this stage just record the seed entry with `origin: "pdf"`, `original_path: pdf://<basename>`, `source_url: null`, and a placeholder `summary` (the user's framing if they provided one, else empty — the source_writer will fill it in from extracted text in Step 6.3). Store the absolute path on the seed entry as `local_pdf_path` so Step 6.2 knows where to extract from.
 8. **Web PDFs** (a URL ending in `.pdf`): Same treatment as local PDFs, but Step 6.2 will download to `raw/assets/<slug>/original.pdf` first via `httpx`, then extract. If the `httpx` download is blocked (403 / bot wall / CAPTCHA), retry the download through Bright Data (`bdata scrape "<url>" -o "raw/assets/<slug>/original.pdf"`, see `/brightdata-cli`) before giving up.
 
-For each seed URI, create a finding entry (same format as research subagent findings — including `author`, `published_date`, `publication`, `source_url` metadata fields). For web seed URIs, also include a `fetched_markdown` field carrying the cleaned content from the Bright Data scrape (or the WebFetch fallback), so the builder can write the file directly without a re-fetch. **Seed URIs always get `relevance_score: 1.0`** — the user explicitly provided them, so they are the highest-relevance sources by definition. They skip reranking entirely and are always included in the final output. Never assign a seed URI a score lower than 1.0, and never filter one out during reranking.
+For each seed URI, create a finding entry (same format as research subagent findings — including `author`, `published_date`, `publication`, `source_url` metadata fields). For web seed URIs, also include a `fetched_markdown` field carrying the cleaned content from the Bright Data scrape (or the WebFetch fallback), so the builder can write the file directly without a re-fetch. **Seed URIs always get `relevance_score: 1.0`** — the user explicitly provided them, so they are the highest-relevance sources by definition. They bypass the discovery scoring entirely (they flow through `seeds.json`, not the discovery results) and are always included in the final output. Never assign a seed URI a score lower than 1.0.
 
 ### Step 1a — GitHub pipeline (per repo URL)
 
@@ -442,30 +457,38 @@ Summarize your understanding back to the user in 2-3 sentences so they can corre
 
 ## Step 2 — Configure discovery depth
 
-Skip this step entirely for `query`, `append-trusted`, `append-light`, and seed-only
-`init`. Those modes do not run research rounds; set `rounds_completed: null` for trusted
-single-source ingest and `rounds_completed: 0` for light/seed-only ingest.
+Skip this step entirely for `query`, `append`, and seed-only `init`. Those modes do not run
+research rounds; set `rounds_completed: 0` for seed-only ingest.
 
-For `append-deep` or `init` with explicit discovery, ask only after showing the routing
-plan from Step 0:
+This step applies to `deep` mode (and `init` with explicit discovery). Discovery runs at one
+of exactly three **depth presets** — no free-form round/query counts:
 
-1. **How many research rounds?** Default **1** for `append-deep`, **2** for `init` with
-   discovery. Suggest 3-5 only when the user explicitly asks for exhaustive coverage.
-2. **How many queries per round?** Default **4 for round 1, 2 for rounds 2+**. This keeps
-   new-user and demo runs practical while still allowing depth when requested.
-3. **Topic slug** - short kebab-case name for the output directory (suggest one based on
-   the topic).
+| Preset | Rounds | Queries per round | Total queries |
+|---|---|---|---|
+| `fast` | 1 | `[3]` | 3 |
+| `light` | 2 | `[3, 2]` (3 then 2) | 5 |
+| `deep` | 3 | `[3, 3]` (3 each round) | 9 |
 
-Capture the answers as `total_rounds`, `queries_per_round = (round1_count,
-subsequent_count)`, and `topic_slug`. Use the defaults when the user accepts them
-unchanged.
+**Choosing the preset:**
+- If the deep-research gate (Step 0) already captured the preset, use it — don't ask again.
+- Otherwise pre-select from the user's wording: "quick" / "fast" / "shallow" → `fast`;
+  "exhaustive" / "comprehensive" / "thorough" / "deep dive" → `deep`.
+- If the wording doesn't pin a preset, **ask the user to pick** `fast` / `light` / `deep`
+  (default `light`) before starting rounds.
+
+Also capture the **topic slug** — a short kebab-case name for the output directory (suggest
+one based on the topic).
+
+Capture the choice as `total_rounds` and `queries_per_round = (round1_count,
+subsequent_count)` per the table above (`fast` → `total_rounds=1, (3,)`; `light` →
+`total_rounds=2, (3, 2)`; `deep` → `total_rounds=3, (3, 3)`), plus `topic_slug`.
 
 ## Step 3 — Generate initial search queries
 
-Run this step only for `append-deep` or `init` with explicit discovery. Seed-only modes
+Run this step only for `deep` or `init` with explicit discovery. Seed-only modes
 skip directly to Step 6 after Step 1.
 
-Based on the brain dump, generate **exactly `queries_per_round[0]` queries** (default 4) that approach the topic from different angles. The goal is focused breadth - enough to discover missing context without turning a simple request into a long research run.
+Based on the brain dump, generate **exactly `queries_per_round[0]` queries** (3 for every preset) that approach the topic from different angles. The goal is focused breadth - enough to discover missing context without turning a simple request into a long research run.
 
 Think about:
 - **Direct terms**: The obvious keywords
@@ -478,13 +501,13 @@ Write these queries down before spawning subagents — you'll refine them in lat
 
 ## Step 3b — Discover NotebookLM notebooks
 
-Run this step only for `append-deep` or `init` with explicit discovery. Seed-only modes do
+Run this step only for `deep` or `init` with explicit discovery. Seed-only modes do
 not query NotebookLM.
 
 The source coverage rule for discovery modes is non-negotiable: **every discovery run
 queries every NotebookLM notebook, every time. No heuristic filtering.** This is
-intentional - the reranker filters at the end; we cast the widest possible net only when
-the user chose deep discovery.
+intentional - we cast the widest possible net only when the user chose deep discovery,
+and dedup consolidates the findings at the end (nothing is filtered out).
 
 1. **Check presence, then authentication.** If `nlm` was MISSING in Step 0.5, skip this
    entire step: warn "⚠️ `nlm` CLI not found — skipping NotebookLM (see the `nlm-skill`)",
@@ -502,11 +525,11 @@ the user chose deep discovery.
 
 5. **User-specified notebooks**: If the user referenced specific notebooks in their brain dump (Step 1), they are already in `notebook_ids` (everything is). Note them in the report so the user knows they were prioritized in the search angles.
 
-Cost trade-off: querying all notebooks scales with the size of the user's NLM library. For libraries above ~30 notebooks this can be slow — accept the cost; the reranker handles relevance filtering. If it becomes consistently painful, this is where a `--scope` knob would land (out of scope for now).
+Cost trade-off: querying all notebooks scales with the size of the user's NLM library. For libraries above ~30 notebooks this can be slow — accept the cost; the researchers' `relevance` tags rank the results and dedup consolidates them. If it becomes consistently painful, this is where a `--scope` knob would land (out of scope for now).
 
 ## Step 4 — Run research rounds
 
-Run this step only for `append-deep` or `init` with explicit discovery.
+Run this step only for `deep` or `init` with explicit discovery.
 
 For each round, spawn **one Research Subagent per query** in parallel using the Agent tool. Each subagent follows the instructions in `agents/researcher.md` (read that file and pass its content as the subagent prompt, along with the specific query and context).
 
@@ -562,41 +585,42 @@ After each round completes — **all steps delegate to bash/scripts/subagents so
 
 Continue for N rounds (as configured in step 2).
 
-## Step 5 — Rerank and filter for quality
+## Step 5 — Merge, dedup & score
 
-Skip this step for `append-trusted`, `append-light`, and seed-only `init`. For those
-routes, write `<research_dir>/reranked-results.json` as `{"results": []}` and continue to
-Step 6 with `seeds.json` only.
+Skip this step for `append` and seed-only `init`. For those routes, write
+`<research_dir>/discovery-results.json` as `{"results": []}` and continue to Step 6 with
+`seeds.json` only.
 
-The research rounds cast a wide net intentionally — now it's time to be selective. Spawn a **Reranker Subagent** that reads `agents/reranker.md` and scores every deduplicated candidate against the user's original intent.
+There is no LLM reranker. The research rounds already cast a wide net and tagged each finding
+`relevance: high|medium`; this step just consolidates them deterministically before any wiki
+element is computed. It is a **single non-LLM script call** — nothing here enters your context.
 
-1. **Merge per-round deduped files** into a single candidates file via script (no LLM-side merging):
+1. **Merge all per-round deduped files** into one scored results file. The same dedup script
+   that ran per-round handles cross-round deduplication; the `--as-results` flag wraps the
+   output as `{"results": [...]}` and derives a numeric `relevance_score` from each finding's
+   `relevance` tag (`high → 0.8`, `medium → 0.5`, else `0.5`):
    ```bash
    uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/dedup_findings.py \
      --inputs <research_dir>/round-*-deduped.json \
-     --output <research_dir>/reranker-candidates.json
+     --as-results \
+     --output <research_dir>/discovery-results.json
    ```
-   The same dedup script handles cross-round deduplication.
+   Every candidate is kept (no filtering); deduplication is by `original_path`, keeping the
+   finding with the longest summary. The researcher's broad summaries carry through to
+   `index.yaml`; the per-source wiki page (Layer 1.5, written in Step 6.3) is where the
+   sharper, intent-aligned summary lives.
 
-2. **Spawn the reranker subagent** with:
-   - The research topic
-   - The input summary from step 1
-   - The key themes from step 1
-   - `candidates_path`: `<research_dir>/reranker-candidates.json`
-   - `output_path`: `<research_dir>/reranked-results.json`
+2. **In parallel with this merge**, kick off the seed-URI portion of the Builder Subagent
+   (Step 6). Seed URIs (score 1.0) need no scoring, so their files can be copied/fetched
+   immediately. Pass the builder a seeds-only variant with `results_json` = empty results and
+   `seeds_json` = your seed list. Join with the full builder in Step 6.
 
-3. **The reranker will**:
-   - Sample each candidate using the cheapest signal that's sufficient — metadata (frontmatter / header lines / `nlm source describe`) first, then `head -n 750` / `tail -n 250` via bash, and only fall back to a full file read as a last resort. If that 750/250 window comes back as mostly noise (boilerplate, nav chrome, TOC without substance) for a source that's clearly long and on-topic, widen the window before escalating to a full read. Loading every candidate's full content into the context window is forbidden (see `agents/reranker.md` Step 3 for the exact sampling order).
-   - Score each candidate 0.0–1.0 based on alignment with the user's intent
-   - Rewrite summaries to be sharper and more intent-aligned
-   - **Pass through all candidate metadata unchanged** (`author`, `published_date`, `publication`, `source_url`, origin-specific fields) so Step 6 can build `index.yaml` directly from the reranker output — no re-sampling required
-   - Return all candidates with their scores (no filtering — every source is kept)
+3. **Use `discovery-results.json`** for the full Step 6 builder run. Sorting is handled
+   deterministically by `build_index_yaml.py` (seeds first, then `relevance_score`
+   descending) — you do not sort by hand.
 
-4. **In parallel with the reranker**, kick off the seed-URI portion of the Builder Subagent (Step 6). Seed URIs (score 1.0) skip reranking entirely, so their files can be copied/fetched while the reranker scores the rest. Pass the builder a seeds-only variant with `reranked_json` = empty results and `seeds_json` = your seed list. Join with the full builder in Step 6.
-
-5. **Use the reranker's output** for the full Step 6 builder run. The reranker's rewritten summaries become the summaries in `index.yaml`. Sorting is handled deterministically by `build_index_yaml.py` (seeds first, then score descending) — you do not sort by hand.
-
-This step scores and ranks sources by quality — the `relevance_score` in `index.yaml` tells future agents which sources to prioritize, but nothing is discarded.
+The `relevance_score` in `index.yaml` tells future agents which sources to prioritize, but
+nothing is discarded.
 
 ## Step 6 — Build the raw layer
 
@@ -608,14 +632,14 @@ The Builder Subagent copies / fetches / pipes raw source content onto disk under
    ```
 
 2. **Spawn the Builder Subagent**. Read `agents/builder.md` and pass it as the subagent prompt, along with:
-   - `reranked_json`: `<research_dir>/reranked-results.json`
+   - `results_json`: `<research_dir>/discovery-results.json`
    - `seeds_json`: `<research_dir>/seeds.json` (from Step 1)
    - `research_dir`: the path from step 1 above (final files go here AND scratch JSONs land here too — they're cleaned up in Step 7)
    - `topic`, `input_summary`, `rounds_completed` from Step 1 / Step 2
    - `skill_dir`: `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research` (absolute path)
    - `mode: "raw_only"` — explicitly tells the builder to skip `index.yaml` emission
 
-   In discovery modes, if you already started the **seed-only** builder in Step 5, wait for it to finish before launching the full builder - the full run is idempotent. In seed-only modes, launch the builder once with empty reranked results and the complete `seeds.json`.
+   In discovery modes, if you already started the **seed-only** builder in Step 5, wait for it to finish before launching the full builder - the full run is idempotent. In seed-only modes, launch the builder once with empty discovery results and the complete `seeds.json`.
 
 3. **The builder returns**:
    ```json
@@ -655,7 +679,7 @@ For each entry in `raw_files`, spawn one **`source_writer`** subagent (see `agen
 
 Each spawn passes:
 - `raw_path`: absolute path to the raw file
-- `source_metadata`: the JSON object for this source from the reranker output (already has all the index fields)
+- `source_metadata`: the JSON object for this source from the discovery results (already has all the index fields, including `relevance_score`)
 - `research_topic`, `input_summary` (from Step 1)
 - `existing_entities`: list of `{slug, name}` for entity pages already in `wiki/entities/`. On init runs this is empty; on append runs it's populated by `ls`-and-frontmatter-extract via bash:
   ```bash
@@ -673,7 +697,7 @@ Collect the JSON outputs from each subagent. Aggregate them into a single in-mem
 
 ## Step 6.3.5 — Discussion checkpoint (discovery modes only; default ON for >3 sources)
 
-Before spawning the entity/concept writers in Step 6.4, surface the emerging shape to the user and let them redirect emphasis. **Skip this step entirely for append-trusted, append-light, and seed-only init** unless the user explicitly asks for a discussion checkpoint. Skip it also when the user says "skip discussion" up front or when ingest passes touched <= 3 new sources - the cost outweighs the benefit at small scale.
+Before spawning the entity/concept writers in Step 6.4, surface the emerging shape to the user and let them redirect emphasis. **Skip this step entirely for append and seed-only init** unless the user explicitly asks for a discussion checkpoint. Skip it also when the user says "skip discussion" up front or when ingest passes touched <= 3 new sources - the cost outweighs the benefit at small scale.
 
 Compute and present (to the user, not via subagent):
 
@@ -742,14 +766,14 @@ If `open-questions.md` doesn't yet exist, create it with a header line: `# Open 
 
 Now that the wiki layer exists, build the canonical index. **Two scripts, in order:**
 
-1. **Augment reranked results and seeds with `uri_source_page` and `assets`** for each source (via `jq` — never load JSON in your context):
+1. **Augment discovery results and seeds with `uri_source_page` and `assets`** for each source (via `jq` — never load JSON in your context):
    ```bash
-   # For each source in reranked-results.json, add uri_source_page and assets fields
+   # For each source in discovery-results.json, add uri_source_page and assets fields
    # using the per-source mapping you built in Step 6.3.
    jq --slurpfile aug "<research_dir>/source-augments.json" \
       '.results |= map(. + ($aug[0][.original_path] // {}))' \
-      "<research_dir>/reranked-results.json" \
-      > "<research_dir>/reranked-final.json"
+      "<research_dir>/discovery-results.json" \
+      > "<research_dir>/discovery-final.json"
 
    # Do the same for seed sources; seed-only modes rely on this file.
    jq --slurpfile aug "<research_dir>/source-augments.json" \
@@ -771,7 +795,7 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
      cp "<research_dir>/index.yaml" "$PRIOR_INDEX"
    fi
    uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_yaml.py \
-     --reranked "<research_dir>/reranked-final.json" \
+     --results "<research_dir>/discovery-final.json" \
      --seeds "<research_dir>/seeds-augmented.json" \
      --research-dir "<research_dir>" \
      --topic "<topic>" \
@@ -783,8 +807,8 @@ Now that the wiki layer exists, build the canonical index. **Two scripts, in ord
    rm -f "<research_dir>/.prior-index.yaml"
    ```
    On init runs there is no prior `index.yaml`, so `PRIOR_CREATED`/`PRIOR_INDEX` are
-   empty and the index is built fresh from this run's seeds + results. On **append** runs
-   (`append-trusted`, `append-light`, `append-deep`) the prior index is snapshotted and
+   empty and the index is built fresh from this run's seeds + results. On **append** and
+   **deep** runs against an existing dir, the prior index is snapshotted and
    passed via `--existing-index`, so its existing sources are carried forward and unioned
    with the new ones (deduped by `original_path`, new wins) — without this, an append
    would rebuild the index from only the newly-ingested sources and **drop every
@@ -807,7 +831,7 @@ cat >> "<research_dir>/log.md" <<EOF
 
 ## [$DATE] ingest | <topic> ($(echo <raw_files_count>) sources)
 
-- mode: <append-trusted | append-light | append-deep | init>
+- mode: <append | deep | init>
 - rounds: <rounds_completed>
 - expected runtime shown: <rough estimate from routing plan>
 - raw files added: <count>
@@ -826,9 +850,8 @@ After the research directory is built successfully, delete intermediary JSONs th
 - `round*-query*.json`
 - `round*-deduped.json`
 - `all-rounds-deduped.json`
-- `reranker-candidates.json`
-- `reranked-results.json` and `reranked-final.json`
-- `seeds.json`, `seeds-augmented.json`
+- `discovery-results.json`, `discovery-final.json`, and `discovery-with-uris.json`
+- `seeds.json`, `seeds-augmented.json`, `seeds-with-uris.json`
 - `source-augments.json`
 - `source-writer-outputs.json`
 - `notebook-ids.json`
@@ -842,7 +865,7 @@ The glob is safe: `index.yaml` is YAML (not JSON), and `raw/`/`wiki/` are subdir
 ## Step 8 — Present results
 
 Tell the user:
-- **Mode**: selected route (`query`, `append-trusted`, `append-light`, `append-deep`, or `init`) and whether discovery ran
+- **Mode**: selected route (`query`, `append`, `deep`, or `init`) and whether discovery ran (and at which depth preset)
 - **Runtime expectation**: the estimate shown before execution, plus whether the run stayed inside that expectation
 - **Sources**: "Found N sources across R rounds, scores range from S_min to S_max" + brief thematic breakdown
 - **Wiki**: "Wrote X source pages, Y entity pages, Z concept pages; overview + synthesis are at `wiki/overview.md` and `wiki/synthesis.md`"
@@ -871,7 +894,7 @@ Key commands the researcher subagent uses:
 - `readwise readwise-search-highlights --vector-search-term "<query>"` — semantic search across all highlights (spans both areas).
 - `readwise reader-get-document-details --document-id <id>` — full document content as Markdown, used for the two-layer pattern.
 
-The researcher subagent tags each Readwise finding with `readwise_location: "library" | "feed"` so the reranker can weight library hits slightly higher when two sources look otherwise equivalent.
+The researcher subagent tags each Readwise finding with `readwise_location: "library" | "feed"` so library hits can be weighted slightly higher than feed hits when two sources look otherwise equivalent, and so future agents can filter by location.
 
 **File naming**: When copying files to the research dir, slugify titles to kebab-case, remove special characters, and keep filenames under 60 characters. For Readwise highlights, prefix with `readwise-`.
 
@@ -895,7 +918,6 @@ Sessions expire in ~20 minutes. If commands fail with auth errors, skip NLM for 
 
 - `agents/researcher.md` — Research Subagents (one per query per round). Read and include its content when spawning each research subagent.
 - `agents/gap_analyzer.md` — Gap Analyzer Subagent. Spawned between rounds to generate the next round's queries from the previous round's deduped findings.
-- `agents/reranker.md` — Reranker Subagent. Spawned after all research rounds complete.
 - `agents/builder.md` — Builder Subagent. Spawned in Step 6 to produce raw files (no longer writes `index.yaml` — that moved to Step 6.7 after wiki pages exist).
 - `agents/github_spec_writer.md` — GitHub Spec Writer Subagent. Spawned in Step 1a — once in architecture mode per repo, plus one per targeted module.
 - `agents/source_writer.md` — Source Writer Subagent. Spawned in Step 6.3, **one per raw source in parallel**. Reads one raw file and writes `wiki/sources/<slug>.md` with extended summary, key claims, quotes, and connections; returns suggested entities/concepts.
@@ -904,8 +926,8 @@ Sessions expire in ~20 minutes. If commands fail with auth errors, skip NLM for 
 
 ## Script reference
 
-- `scripts/dedup_findings.py` — Deduplicates research findings by `original_path`, keeping the entry with the longest `summary`. Used per-round and to merge all rounds into the reranker input.
-- `scripts/build_index_yaml.py` — Emits canonical `index.yaml` from reranker output plus seed URIs. Handles schema, sort order, and `created`/`last_updated` semantics deterministically. Called in Step 6.7 after the wiki layer is built so `uri_source_page` and `assets` fields can be populated.
+- `scripts/dedup_findings.py` — Deduplicates research findings by `original_path`, keeping the entry with the longest `summary`. Used per-round; with `--as-results` it also merges all rounds into the scored `discovery-results.json` (deriving `relevance_score` from each finding's `relevance` tag) that the builder and index consume — this replaces the old reranker pass.
+- `scripts/build_index_yaml.py` — Emits canonical `index.yaml` from the discovery results plus seed URIs. Handles schema, sort order, and `created`/`last_updated` semantics deterministically. Called in Step 6.7 after the wiki layer is built so `uri_source_page` and `assets` fields can be populated.
 - `scripts/build_index_md.py` — Generates Obsidian-readable `index.md` from `index.yaml`. Idempotent + byte-stable. Always the last write before the log entry.
 - `scripts/extract_pdf.py` — PDF → markdown via `pymupdf4llm`. Extracts images to `raw/assets/<slug>/`, preserves the original PDF, flags low-quality (scanned) PDFs. Used in Step 6.2 for user-dropped or web-fetched PDFs.
 - `scripts/download_assets.py` — Scans a markdown file for remote image references, downloads them to `raw/assets/<slug>/`, and rewrites references to local paths. Used in Step 6.2 on every raw markdown file.

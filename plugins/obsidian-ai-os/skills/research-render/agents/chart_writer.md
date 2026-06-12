@@ -18,7 +18,7 @@ You produce one matplotlib chart from one or more wiki pages. Output is a `.py` 
    - **Bar chart**: comparing counts (sources per entity, mentions per concept, score buckets)
    - **Horizontal bar / lollipop**: ranking categorical things
    - **Line / area**: anything with a date/time axis (`published_date` over time, ingest log tally)
-   - **Scatter**: relationship between two numeric fields (relevance_score vs. published_date)
+   - **Scatter**: relationship between two numeric fields (relevance_score vs. published_date) — note `relevance_score` is coarse (1.0 seed, 0.8 high, 0.5 medium), so it buckets rather than spreads continuously
    - **Heatmap**: co-citation matrix between entities/concepts
    - **Stacked bar**: composition (sources per origin per topic)
 4. Write the script with this exact skeleton. The leading `# /// script` block is a

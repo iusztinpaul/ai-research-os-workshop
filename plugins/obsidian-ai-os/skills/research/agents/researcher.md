@@ -79,7 +79,7 @@ Run these searches:
 
 For Readwise hits, if `obsidian` is available, also check whether there's a local vault copy where Readwise syncs into the vault (commonly a `Readwise/` folder under a sources directory) — the vault file contains the user's curated highlights and personal annotations, which are often more valuable than the raw document. Skip this check when `obsidian` is unavailable.
 
-**Tag the origin location** — when you build finding entries for Readwise hits, record which area the document came from by setting `readwise_location` to either `"library"` or `"feed"`. This helps the reranker weight library hits slightly higher when two sources look otherwise equivalent.
+**Tag the origin location** — when you build finding entries for Readwise hits, record which area the document came from by setting `readwise_location` to either `"library"` or `"feed"`. This lets library hits be weighted slightly higher than feed hits when two sources look otherwise equivalent, and lets future agents filter by location.
 
 ### Step 3: Search NotebookLM
 

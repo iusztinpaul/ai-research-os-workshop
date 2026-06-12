@@ -2,13 +2,17 @@
 # requires-python = ">=3.12"
 # dependencies = ["pyyaml>=6.0.1"]
 # ///
-"""Build `index.yaml` for a research directory from reranker + seed URI JSON.
+"""Build `index.yaml` for a research directory from discovery results + seed URI JSON.
 
 Inputs:
-  --reranked <path>   JSON from the reranker, shape: {"results": [ {...}, ... ]}
-                      Each result must already carry all metadata fields (author,
-                      published_date, publication, source_url, origin-specific fields).
-  --seeds <path>      JSON with seed URIs (score 1.0, skip reranking), shape:
+  --results <path>    JSON of deduped, scored discovery findings, shape:
+                      {"results": [ {...}, ... ]} (produced by
+                      `dedup_findings.py --as-results`). Each result must already carry all
+                      metadata fields (author, published_date, publication, source_url,
+                      origin-specific fields) plus a numeric `relevance_score`. If a result
+                      lacks `relevance_score` but carries the researcher's `relevance` tag,
+                      it is derived here (high=0.8, medium=0.5, else 0.5) as a safety net.
+  --seeds <path>      JSON with seed URIs (score 1.0, user-provided), shape:
                       {"seeds": [ {...}, ... ]}. Same field schema as results. Optional.
   --research-dir <p>  Research directory (e.g. working-dir/research-<slug>/).
                       Holds raw/, wiki/, and the emitted index.yaml. Used to resolve
@@ -38,7 +42,7 @@ Behavior:
 
 Usage:
   uv run --script scripts/build_index_yaml.py \\
-    --reranked reranked-results.json \\
+    --results discovery-results.json \\
     --seeds seed-uris.json \\
     --research-dir /path/to/research-topic \\
     --topic "Scaling vertical AI agents" \\
@@ -112,15 +116,32 @@ def normalize_authors(entry: dict) -> list[str]:
 
 _LIST_FIELDS = {"assets", "wiki_refs"}
 
+# Fallback map for results that carry the researcher's `relevance` tag but no numeric
+# `relevance_score` (normally dedup_findings.py --as-results sets the score upstream).
+_RELEVANCE_SCORES = {"high": 0.8, "medium": 0.5}
+_DEFAULT_RELEVANCE_SCORE = 0.5
+
+
+def resolve_relevance_score(entry: dict) -> float | None:
+    """Use the numeric score if present; otherwise derive it from the `relevance` tag."""
+    score = entry.get("relevance_score")
+    if score is not None:
+        return score
+    if "relevance" in entry:
+        return _RELEVANCE_SCORES.get(entry.get("relevance"), _DEFAULT_RELEVANCE_SCORE)
+    return None
+
 
 def normalize_source(entry: dict) -> dict:
-    """Project a reranker-result or seed entry onto the index.yaml source schema."""
+    """Project a discovery-result or seed entry onto the index.yaml source schema."""
     out: dict[str, Any] = {}
     for field in BASE_FIELDS:
         if field == "authors":
             out[field] = normalize_authors(entry)
         elif field == "tags":
             out[field] = entry.get("tags", entry.get("key_concepts", []) or [])
+        elif field == "relevance_score":
+            out[field] = resolve_relevance_score(entry)
         elif field in _LIST_FIELDS:
             value = entry.get(field)
             out[field] = list(value) if isinstance(value, list) else []
@@ -144,11 +165,11 @@ def load_existing_sources(existing_index_path: Path | None) -> list[dict]:
 
 
 def load_sources(
-    reranked_path: Path,
+    results_path: Path,
     seeds_path: Path | None,
     existing_index_path: Path | None = None,
 ) -> list[dict]:
-    reranked = json.loads(reranked_path.read_text()).get("results", [])
+    results = json.loads(results_path.read_text()).get("results", [])
     seeds = []
     if seeds_path is not None and seeds_path.exists():
         seeds = json.loads(seeds_path.read_text()).get("seeds", [])
@@ -158,7 +179,7 @@ def load_sources(
     for row in seed_rows:
         row["relevance_score"] = 1.0
 
-    ranked_rows = [normalize_source(r) for r in reranked]
+    ranked_rows = [normalize_source(r) for r in results]
 
     # Carry forward sources from a prior index.yaml (append runs). A freshly-ingested
     # source — whether seed or ranked — supersedes the stale entry sharing its path.
@@ -218,7 +239,7 @@ def build_doc(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reranked", required=True)
+    parser.add_argument("--results", required=True, help="Deduped, scored discovery findings JSON ({'results': [...]}).")
     parser.add_argument("--seeds", default=None)
     parser.add_argument("--research-dir", required=True)
     parser.add_argument("--topic", required=True)
@@ -241,11 +262,11 @@ def main() -> None:
     if not research_dir.is_dir():
         raise SystemExit(f"research-dir does not exist: {research_dir}")
 
-    reranked_path = Path(args.reranked)
+    results_path = Path(args.results)
     seeds_path = Path(args.seeds) if args.seeds else None
     existing_index_path = Path(args.existing_index) if args.existing_index else None
 
-    sources = load_sources(reranked_path, seeds_path, existing_index_path)
+    sources = load_sources(results_path, seeds_path, existing_index_path)
     doc = build_doc(
         args.topic,
         args.input_summary,

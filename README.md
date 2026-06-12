@@ -136,13 +136,13 @@ The shared data contract lives in
 | Mode | Use when | Behavior |
 |---|---|---|
 | `query` | Ask from an existing research directory | Reads `index.yaml` and `wiki/`; no ingest or discovery. |
-| `append-trusted` | Add one known source | Ingests that source only. |
-| `append-light` | Add a few provided sources | Ingests provided sources only; no discovery rounds. |
-| `append-deep` | Explicitly request deep research | Runs source discovery, rounds, rerank, and wiki updates. |
+| `append` | Add the sources you provide | Ingests the provided sources only; no discovery rounds. |
+| `deep` | Explicitly request deep research | Runs source discovery rounds (at a `fast`/`light`/`deep` depth preset), dedup, and wiki updates. |
 | `init` | Start a new research directory | Creates `working-dir/research-<topic>/`. |
 
-Deep discovery is opt-in. Long runs show a plan first: selected mode, sources to ingest,
-expected runtime, and files to write.
+Deep discovery is opt-in and runs at one of three depth presets — `fast` (1 round, 3 queries),
+`light` (2 rounds, 3 + 2 queries), or `deep` (3 rounds, 3 queries each). Long runs show a plan
+first: selected mode, sources to ingest, expected runtime, and files to write.
 
 ## Install
 

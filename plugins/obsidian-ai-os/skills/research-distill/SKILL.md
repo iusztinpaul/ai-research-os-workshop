@@ -125,9 +125,9 @@ Create `research.md` in the same directory as the content files. The file contai
    - `<uri_source_page>`: The Layer 1.5 wiki source page (`wiki/sources/<slug>.md`) if present in `index.yaml`, else `null`. This is the writer agent's primary drill-down target when it needs more depth than the distilled body provides without jumping all the way to raw.
    - `<original_path>`: The original vault path or URL
    - `<origin>`: `obsidian`, `readwise`, `web`, `notebooklm`, `github`, `pdf`, or `youtube`
-   - `<relevance_score>`: The numeric score from reranking
+   - `<relevance_score>`: The numeric relevance score from `index.yaml` (1.0 = seed; otherwise derived from the researcher's high/medium tag)
    - `<tags>`: Comma-separated tag list
-   - `<summary>`: The reranker's summary from index.yaml
+   - `<summary>`: The source summary from index.yaml
    - `<readwise_location>`: (Readwise sources only) `library` (user manually saved) or `feed` (ingested from an RSS subscription the user chose). Emit this tag only when `origin` is `readwise` and the field is present in `index.yaml`.
    - `<nlm_source_id>`: (NotebookLM sources only) The NLM source UUID
    - `<nlm_notebook_title>`: (NotebookLM sources only) The notebook's human-readable title

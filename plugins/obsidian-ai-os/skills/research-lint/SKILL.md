@@ -1,6 +1,6 @@
 ---
 name: research-lint
-description: Health-check a research directory produced by /research. Runs eight checks — orphan sources, missing entity/concept hubs, missing comparison candidates, broken wikilinks, stale claims, contradictions, open-question synthesis, and optional reranker drift. Outputs a report; edits where safe (broken-link flags, open-question append, contradiction surfacing); flags-only otherwise. Always user-triggered, never automated. Trigger when the user says things like "lint my research", "health check my research", "check the wiki", "audit my research dir", "what's wrong with my wiki", "find orphans / contradictions / stale claims".
+description: Health-check a research directory produced by /research. Runs seven checks — orphan sources, missing entity/concept hubs, missing comparison candidates, broken wikilinks, stale claims, contradictions, and open-question synthesis. Outputs a report; edits where safe (broken-link flags, open-question append, contradiction surfacing); flags-only otherwise. Always user-triggered, never automated. Trigger when the user says things like "lint my research", "health check my research", "check the wiki", "audit my research dir", "what's wrong with my wiki", "find orphans / contradictions / stale claims".
 user_invocable: true
 ---
 
@@ -21,7 +21,7 @@ Verify it's a v4 layout — `<research_dir>/raw/` and `<research_dir>/wiki/` mus
 
 ## Step 2 — Pick the checks
 
-Default: run all eight checks. The user can scope down via natural language ("just check broken links", "skip the LLM stuff", "no rerank"). Map their phrasing to:
+Default: run all seven checks. The user can scope down via natural language ("just check broken links", "skip the LLM stuff"). Map their phrasing to:
 
 | Check | Cost | Edits the wiki? |
 |---|---|---|
@@ -32,9 +32,8 @@ Default: run all eight checks. The user can scope down via natural language ("ju
 | stale-claims | LLM | flags only |
 | contradictions | LLM (slow) | appends to `wiki/contradictions.md` |
 | open-questions | LLM | appends to `wiki/open-questions.md` |
-| rerank-drift | re-runs reranker subagent | flags only |
 
-The four cheap checks always run. The four LLM checks run by default but can be skipped per user request.
+The four cheap checks always run. The three LLM checks run by default but can be skipped per user request.
 
 ## Step 3 — Run the cheap checks (in parallel via bash)
 
@@ -69,15 +68,7 @@ Pass each subagent:
 
 Each returns a JSON summary on stdout: `{check_type, findings_count, written: true|false, flags: [...]}`. The orchestrator aggregates flags into the final report.
 
-## Step 5 — Optional: rerank drift
-
-If the user asked for it (or if it's been > 30 days since the last lint), re-run the reranker against the current wiki state to see if scores have drifted.
-
-This is a single subagent call (`agents/reranker.md` from `/research`) with `candidates_path` set to the current `index.yaml` sources (converted to candidates JSON via `jq`). Compare the new scores against the existing `relevance_score` values; flag sources whose score moved by ≥ 0.15.
-
-This step is opt-in only — slow and can rewrite scores in confusing ways if the source corpus has changed substantially.
-
-## Step 6 — Apply the safe edits
+## Step 5 — Apply the safe edits
 
 Some checks generate *additive* edits the lint pass should apply automatically. Others generate *flags* the user must act on.
 
@@ -90,7 +81,6 @@ Some checks generate *additive* edits the lint pass should apply automatically. 
 | stale-claims | NO | flag — needs human judgment |
 | contradictions | YES | append to `wiki/contradictions.md` (the page is meant to grow) |
 | open-questions | YES | append new questions to `wiki/open-questions.md` |
-| rerank-drift | NO | flag — rerunning the reranker is destructive (it overwrites scores); apply only on user confirmation |
 
 After any auto-apply edits land, regenerate the index:
 
@@ -102,7 +92,7 @@ PRIOR_CREATED=$(grep '^created:' "<research_dir>/index.yaml" | awk -F"'" '{print
 uv run --script ${CLAUDE_PLUGIN_ROOT:-.claude}/skills/research/scripts/build_index_md.py --research-dir "<research_dir>"
 ```
 
-## Step 7 — Append to log.md
+## Step 6 — Append to log.md
 
 ```bash
 DATE=$(date -u +%Y-%m-%d)
@@ -117,11 +107,10 @@ cat >> "<research_dir>/log.md" <<EOF
 - stale-claims: <count flagged>
 - contradictions: <count appended to contradictions.md>
 - open-questions: <count appended to open-questions.md>
-- rerank-drift: <count flagged | "skipped">
 EOF
 ```
 
-## Step 8 — Present the report
+## Step 7 — Present the report
 
 Structure the report so the user can scan it and act:
 
@@ -145,7 +134,6 @@ Run at: <ISO-8601>
    - [[wiki/concepts/foo]] referenced from [[wiki/sources/abc]] but the file doesn't exist
    - ...
 4. Stale claims (<N>): see <research_dir>/lint-stale-claims.json
-5. Rerank drift (<N>): if shown
 
 ### Auto-applied edits
 - <K> contradictions appended to [[wiki/contradictions.md]]

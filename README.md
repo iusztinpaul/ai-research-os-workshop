@@ -12,6 +12,8 @@ open Codex or Claude Code and ask directly. That is faster.
 
 `ai-research-os` is for the cases where research should compound over time.
 
+<p align="center"><img src="media/wiki_grows.png" alt="The wiki grows: a custom link, another deep-research round, or a new derivative from a question all feed the same concept" width="700"/></p>
+
 Codex gives you an answer. This gives Codex a reusable research workspace:
 
 - `raw/` - copied or fetched source material
@@ -40,6 +42,8 @@ research wiki from your own sources:
 Obsidian is optional. It is just a visual IDE for browsing the generated markdown wiki.
 The system can run purely through Codex or Claude Code from a normal working directory.
 
+<p align="center"><img src="media/project_scoped_wiki.png" alt="Sources and deep research feed a project wiki, which an agent renders into articles, videos, and slides" width="800"/></p>
+
 ## Slides and video
 
 - Slides: [] (coming soon)
@@ -59,9 +63,10 @@ Rated 5/5 by 300+ students. The first 6 lessons are free:
 
 ## Architecture
 
-TODO - add architecture diagram here.
+<p align="center"><img src="media/six_block_pipeline.png" alt="Pipeline: sources flow through deep research, store raw files, index, generate wiki, and query" width="900"/></p>
 
-Suggested shape:
+Sources flow through deep research, get stored as raw files, indexed, synthesized into a
+wiki, and then queried:
 
 ```text
 user question / sources
@@ -91,6 +96,14 @@ wiki browsed in Obsidian.
 | **Deep research** from an outline + web resources — discover sources, summarize, and synthesize them into a topic wiki. | `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md) | <img src="media/example_1_obsidian.png" width="320"/><br/>A full research wiki on agentic harnesses, built from a content outline and reference links. |
 | **Ingest GitHub repos** — compute per-repo notes (architecture, agents, memory, permissions) and cross-repo comparisons, skipping deep discovery. | `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md) | <img src="media/example_2_obsidian.png" width="320"/><br/>Side-by-side comparison pages across three coding-agent repositories. |
 | **Ingest web links** — pull a handful of specific articles into the wiki without running deep research. | `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md) | <img src="media/example_3_obsidian.png" width="320"/><br/>Source pages and synthesis built from three custom URLs. |
+
+## How to use it
+
+1. Start with a question and a few sources.
+2. Run `/research`.
+3. Show the generated `working-dir/research-<topic>/` directory.
+4. Ask a follow-up question that answers from the existing wiki instead of re-ingesting.
+5. Add a YouTube video or GitHub repo and show the wiki update.
 
 ## When to use it
 
@@ -147,6 +160,17 @@ The shared data contract lives in
 Deep discovery is opt-in and runs at one of three depth presets — `fast` (1 round, 3 queries),
 `light` (2 rounds, 3 + 2 queries), or `deep` (3 rounds, 3 queries each). Long runs show a plan
 first: selected mode, sources to ingest, expected runtime, and files to write.
+
+In `query` mode the agent drills down progressively — index summary first, then the source
+wiki page, then derivatives, and only the raw source if it still needs it — so the context
+window stays small:
+
+<p align="center"><img src="media/query_drilldown.png" alt="A question drills down from the index.yaml summary to the source wiki page to derivatives, reaching the raw source only if needed, keeping the context window small" width="800"/></p>
+
+A question can also grow the wiki: it spawns new notes and comparisons off existing concepts,
+and your open questions accumulate for future rounds:
+
+<p align="center"><img src="media/questions_derivatives.png" alt="A question expands a concept into a new note and a new comparison, while your questions accumulate" width="800"/></p>
 
 ## Install
 
@@ -236,6 +260,12 @@ you and continues with the sources it can access.
 | `git` | Ingest GitHub repos | Install system Git. |
 | YouTube captions | Ingest public YouTube transcripts | No API key required. Public captions must be available. |
 
+Your PARA vault (Projects, Areas, Resources, Archive) is pulled into an immutable Obsidian
+snapshot — notes, resources, and highlights — that research builds on without mutating your
+originals:
+
+<p align="center"><img src="media/para_snapshot.png" alt="PARA folders (Projects, Areas, Resources, Archive) collapse into an immutable Obsidian snapshot of notes, resources, and highlights" width="800"/></p>
+
 ## Output layout
 
 Research outputs are created under:
@@ -258,6 +288,11 @@ working-dir/research-<topic>/
 
 `index.yaml` is the canonical machine-readable catalog. `index.md` is the
 Obsidian-friendly view.
+
+The agent reads `index.yaml` first and follows its pointers to wiki pages, derivatives, or
+raw sources — the index *is* the retrieval layer, so there is no vector DB:
+
+<p align="center"><img src="media/index_retrieval.png" alt="The agent reads index.yaml first as the retrieval layer, pointing to wiki pages, derivatives, and raw sources, with no vector DB" width="800"/></p>
 
 ## Extending it - add your own feature
 

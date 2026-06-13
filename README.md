@@ -10,7 +10,7 @@ Why not just ask Codex?
 For simple questions, you should. If you have one repo, one link, or one quick question,
 open Codex or Claude Code and ask directly. That is faster.
 
-`obsidian-ai-os` is for the cases where research should compound over time.
+`ai-research-os` is for the cases where research should compound over time.
 
 Codex gives you an answer. This gives Codex a reusable research workspace:
 
@@ -26,7 +26,7 @@ every week.
 
 ## What this is
 
-`obsidian-ai-os` is a set of local AI skills for building and querying a persistent
+`ai-research-os` is a set of local AI skills for building and querying a persistent
 research wiki from your own sources:
 
 - Obsidian notes
@@ -109,13 +109,13 @@ Do not use this when:
 
 ## Compared to alternatives
 
-| Tool | Best for | Limitation | Where `obsidian-ai-os` fits |
+| Tool | Best for | Limitation | Where `ai-research-os` fits |
 |---|---|---|---|
 | Codex one-shot | Fast answers, coding help, repo Q&A | The answer is not automatically turned into a durable research workspace | Use Codex directly for simple questions; use this when the research should be reused and extended |
 | NotebookLM | Chatting with a fixed set of uploaded sources | Less programmable, less agent-native, not designed around repo parsing, wiki updates, or repeated source ingestion loops | Creates local files, source pages, indexes, and synthesis that agents can keep editing |
 | Deep research agents | Broad discovery and synthesis | Often produce a one-time report | Stores the report as a living wiki with raw sources, open questions, and append workflows |
 | RAG / vector databases | Retrieval over large corpora | Infrastructure-heavy; retrieval alone does not create source pages, comparisons, or a thesis | Keeps the workflow lightweight and artifact-first; indexing is human/agent-readable |
-| `obsidian-ai-os` | Research that compounds across notes, repos, videos, links, and follow-up questions | More setup than a one-shot prompt | Gives Codex / Claude Code a reusable research workspace |
+| `ai-research-os` | Research that compounds across notes, repos, videos, links, and follow-up questions | More setup than a one-shot prompt | Gives Codex / Claude Code a reusable research workspace |
 
 ## Skills
 
@@ -127,7 +127,7 @@ Do not use this when:
 | `/research-render` | Render wiki pages into slides, charts, canvases, or content briefs. |
 
 The shared data contract lives in
-`plugins/obsidian-ai-os/skills/research/CONVENTIONS.md`.
+`plugins/ai-research-os/skills/research/CONVENTIONS.md`.
 
 ## Research modes
 
@@ -161,8 +161,8 @@ vault root, a project root, or any working folder. Research outputs are created 
 Inside Claude Code, run:
 
 ```text
-/plugin marketplace add iusztinpaul/obsidian-ai-os
-/plugin install obsidian-ai-os@iusztinpaul
+/plugin marketplace add iusztinpaul/ai-research-os-workshop
+/plugin install ai-research-os@iusztinpaul
 ```
 
 That's it — the `/research`, `/research-distill`, `/research-lint`, and
@@ -174,18 +174,18 @@ Use this if you want to edit the skills, test a PR branch, or run without the
 marketplace plugin.
 
 ```bash
-git clone https://github.com/iusztinpaul/obsidian-ai-os.git
+git clone https://github.com/iusztinpaul/ai-research-os-workshop.git
 
 # from the vault or project where you want to use the skills:
 cd /path/to/your/vault-or-project
 mkdir -p .claude/skills
-cp -R /path/to/obsidian-ai-os/plugins/obsidian-ai-os/skills/* .claude/skills/
+cp -R /path/to/ai-research-os-workshop/plugins/ai-research-os/skills/* .claude/skills/
 ```
 
 To test a specific branch, `git checkout <branch-name>` in the clone before copying.
 
 > Tip: instead of copying, symlink the skills so your edits are picked up live:
-> `ln -s /path/to/obsidian-ai-os/plugins/obsidian-ai-os/skills/research .claude/skills/research`
+> `ln -s /path/to/ai-research-os-workshop/plugins/ai-research-os/skills/research .claude/skills/research`
 
 ### First run
 
@@ -264,7 +264,7 @@ bundle of these skill folders. Adding a feature means adding a new skill folder.
 ### Anatomy of a skill
 
 ```text
-plugins/obsidian-ai-os/skills/<your-skill>/
+plugins/ai-research-os/skills/<your-skill>/
   SKILL.md          # required - frontmatter + instructions
   scripts/          # optional - uv run --script helpers
   agents/           # optional - sub-agent prompts
@@ -291,16 +291,16 @@ is the most complete reference.
 ### Add a feature in four steps
 
 1. **Create the folder.** Copy the closest existing skill as a starting point:
-   `cp -R plugins/obsidian-ai-os/skills/research-lint plugins/obsidian-ai-os/skills/my-skill`
+   `cp -R plugins/ai-research-os/skills/research-lint plugins/ai-research-os/skills/my-skill`
 2. **Edit `SKILL.md`.** Update the `name`, `description`, and instructions. Reuse the
-   shared data contract in `plugins/obsidian-ai-os/skills/research/CONVENTIONS.md` so your
+   shared data contract in `plugins/ai-research-os/skills/research/CONVENTIONS.md` so your
    skill reads and writes the same `index.yaml` / `wiki/` layout as the others.
 3. **Test locally** with Option B above (symlink the skill into `.claude/skills/`), open
    Claude Code, and confirm `/my-skill` appears and runs as expected.
 4. **Register and ship it.** The skill is auto-discovered by the plugin folder, so no
    manifest edit is required to run it locally. When you want it in the published plugin,
    update the description in `.claude-plugin/marketplace.json` and
-   `plugins/obsidian-ai-os/.claude-plugin/plugin.json`, then open a PR.
+   `plugins/ai-research-os/.claude-plugin/plugin.json`, then open a PR.
 
 ### Helper scripts
 
@@ -308,7 +308,7 @@ Put reusable logic in `scripts/` and call it with `uv run --script`. Declare
 dependencies inline with [PEP 723](https://peps.python.org/pep-0723/) script metadata so
 `uv` installs them into an isolated environment automatically — no global installs, no
 `requirements.txt`. See
-`plugins/obsidian-ai-os/skills/research/scripts/youtube_extract_transcript.py` for a
+`plugins/ai-research-os/skills/research/scripts/youtube_extract_transcript.py` for a
 complete example.
 
 ## Notes

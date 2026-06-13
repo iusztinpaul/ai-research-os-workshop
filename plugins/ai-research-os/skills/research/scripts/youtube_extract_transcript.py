@@ -136,7 +136,7 @@ def fetch_transcript(video_id: str, languages: list[str], preserve_formatting: b
 def fetch_oembed_metadata(url: str) -> dict[str, str]:
     """Fetch lightweight public title/channel metadata without an API key."""
     endpoint = "https://www.youtube.com/oembed?" + urlencode({"url": url, "format": "json"})
-    request = Request(endpoint, headers={"User-Agent": "obsidian-ai-os/0.1"})
+    request = Request(endpoint, headers={"User-Agent": "ai-research-os/0.1"})
     try:
         with urlopen(request, timeout=10) as response:
             data = json.loads(response.read().decode("utf-8"))

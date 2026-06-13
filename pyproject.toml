@@ -1,5 +1,5 @@
 [project]
-name = "obsidian-ai-os"
+name = "ai-research-os"
 version = "0.1.0"
 description = "Research skills plugin for an Obsidian-based Second Brain (the /research-* family)."
 readme = "README.md"

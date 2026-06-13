@@ -5,12 +5,17 @@ presented by Louis-François Bouchard ([X](https://x.com/Whats_AI) ·
 [LinkedIn](https://www.linkedin.com/in/whats-ai/)) and Paul Iusztin
 ([X](https://x.com/pauliusztin_) · [LinkedIn](https://www.linkedin.com/in/pauliusztin/)).
 
-Why not just ask Codex?
+**I'm always losing my research.**
 
-For simple questions, you should. If you have one repo, one link, or one quick question,
-open Codex or Claude Code and ask directly. That is faster.
+5,000+ notes in Obsidian, 5,000+ highlights in Readwise, plus Notion and Google Drive —
+growing ~250 files a month. And every research session still starts from zero: paste the
+same links into Codex, watch it rebuild context on the fly, then lose all of it when the
+chat ends.
 
-`AI Research OS` is for the cases where research should compound over time.
+Access to information was never the bottleneck. **Reusing it was.**
+
+`AI Research OS` turns your Second Brain into a living research memory your agents maintain —
+research that compounds over weeks, months, and years instead of dying in a conversation.
 
 <p align="center"><img src="media/wiki_grows.png" alt="The wiki grows: a custom link, another deep-research round, or a new derivative from a question all feed the same concept" width="700"/></p>
 

@@ -56,21 +56,6 @@ The plugin assumes it runs from an Obsidian vault root:
 - It detects Readwise highlights that sync into the vault (Layer 2 of progressive
   disclosure).
 - Research dirs are created at **`working-dir/research-<topic-slug>/`** relative to the
-  current directory (the default research root — was a configurable `working_memory_dir`,
-  now a fixed `working-dir/`).
+  current directory (the default research root).
 
-No PARA structure, templates, or tagging-rules files are required anymore.
-
-## 4. Changes from the scrabble original
-
-| Change | Why |
-|---|---|
-| Removed `/research-promote` | Its sole purpose was writing into a specific Second-Brain PARA vault (`6 - Notes/`, `7 - Areas/`, `8 - Projects/`, `Note Template.md`, `My Second Brain Tagging Rules.md`). No standalone target. |
-| Removed `*-guideline-create` handoffs | Those skills live in scrabble; a brief is now a plain reusable seed. |
-| `<working_memory_dir>` → `working-dir/` | No consumer `CLAUDE.md` to define it; fixed default relative to cwd. |
-| "Second Brain" branding → "your knowledge sources / Obsidian vault" | Genericized. |
-| `.claude/skills/…` + `<skill_dir>` → `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/…` | Resolves under both install methods: `${CLAUDE_PLUGIN_ROOT}` for a Claude Code plugin install, and the `.claude/skills/` fallback for plain skill installs (`npx skills add`). |
-| `uv run python <script>` → `uv run --script <script>` + PEP 723 headers | Self-bootstrapping Python with no project pyproject. |
-| Bundled `obsidian-cli`, `readwise-cli`, `nlm-skill` | Self-contained usage docs for the source CLIs. |
-| Replaced Bright Data web crawling with `curl` + `python3` stdlib | Drops an external CLI, account, and auth — generic HTML sites fetch with preinstalled tools; WebFetch remains the fallback. |
-| `resources/` (profiles, datasets, glossary) NOT moved | Never referenced by the research family. |
+No PARA structure, templates, or tagging-rules files are required.

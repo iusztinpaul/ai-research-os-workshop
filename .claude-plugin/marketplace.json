@@ -5,7 +5,7 @@
     {
       "name": "ai-research-os",
       "source": "./plugins/ai-research-os",
-      "description": "Research skills for an Obsidian-based Second Brain — the /research-* family (research, research-distill, research-lint, research-promote, research-render)."
+      "description": "Research skills for an Obsidian-based Second Brain — the /research-* family (research, research-distill, research-lint, research-render)."
     }
   ]
 }

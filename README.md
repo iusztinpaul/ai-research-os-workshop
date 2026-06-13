@@ -49,17 +49,21 @@ The system can run purely through Codex or Claude Code from a normal working dir
 - Slides: [] (coming soon)
 - Video: [] (coming soon)
 
-## Whenever You're Ready, Here's How to Go Deeper
+## [Whenever You're Ready, Here's How to Go Deeper](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online)
 
-<a href="https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter"><img src="media/course_clip.gif" alt="Agentic AI Engineering Course" width="800"/></a>
+<a href="https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online"><img src="media/course_clip.gif" alt="Agentic AI Engineering Course" width="800"/></a>
 
-This workshop is a 2–4 hour taste. If you want to go from zero to shipping production-grade AI agents, check out our [**Agentic AI Engineering Course**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter), built with Towards AI.
+Our `AI Research OS` runs locally via skills.
 
-**34 lessons. Three end-to-end portfolio projects. A certificate. And a Discord community with direct access to industry experts and us.**
+Our [**Agent AI Engineering course**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online), built with Towards AI, shows how to ship it to production as a multi-agent system: MCP servers with LangGraph, an evaluator-optimizer loop, observability, evals and GCP deployment.
 
-Rated 5/5 by 300+ students. The first 6 lessons are free:
+35 lessons. 3 end-to-end portfolio projects. A certificate. And a Discord community with direct access to industry experts and me.
 
-[**Start here →**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter)
+Built for software, data engineers or scientists transitioning into AI engineering.
+
+_Rated 5/5 by 300+ students. The first 7 lessons are free:_
+
+[**Start here →**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online)
 
 ## Architecture
 
@@ -97,7 +101,7 @@ Discover sources, summarize, and synthesize them into a topic wiki.
 
 **How to use it:** `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md)
 
-<p align="center"><img src="media/example_1_obsidian.png" alt="A full research wiki on agentic harnesses, built from a content outline and reference links" width="900"/></p>
+<p align="center"><img src="media/example_1_obsidian.png" alt="A full research wiki on agentic harnesses, built from a content outline and reference links" width="600"/></p>
 
 A full research wiki on agentic harnesses, built from a content outline and reference links.
 
@@ -108,7 +112,7 @@ comparisons, skipping deep discovery.
 
 **How to use it:** `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md)
 
-<p align="center"><img src="media/example_2_obsidian.png" alt="Side-by-side comparison pages across three coding-agent repositories" width="900"/></p>
+<p align="center"><img src="media/example_2_obsidian.png" alt="Side-by-side comparison pages across three coding-agent repositories" width="600"/></p>
 
 Side-by-side comparison pages across three coding-agent repositories.
 
@@ -118,7 +122,7 @@ Pull a handful of specific articles into the wiki without running deep research.
 
 **How to use it:** `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md)
 
-<p align="center"><img src="media/example_3_obsidian.png" alt="Source pages and synthesis built from three custom URLs" width="900"/></p>
+<p align="center"><img src="media/example_3_obsidian.png" alt="Source pages and synthesis built from three custom URLs" width="600"/></p>
 
 Source pages and synthesis built from three custom URLs.
 

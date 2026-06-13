@@ -107,7 +107,7 @@ wiki browsed in Obsidian.
 
 Discover sources, summarize, and synthesize them into a topic wiki.
 
-**How to use it:** `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md)
+**How to use it:** `/research example_1_deep_research/prompt.md`
 
 <p align="center"><img src="media/example_1_obsidian.png" alt="A full research wiki on agentic harnesses, built from a content outline and reference links" width="600"/></p>
 
@@ -118,7 +118,7 @@ A full research wiki on agentic harnesses, built from a content outline and refe
 Compute per-repo notes (architecture, agents, memory, permissions) and cross-repo
 comparisons, skipping deep discovery.
 
-**How to use it:** `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md)
+**How to use it:** `/research example_2_github/prompt.md`
 
 <p align="center"><img src="media/example_2_obsidian.png" alt="Side-by-side comparison pages across three coding-agent repositories" width="600"/></p>
 
@@ -128,7 +128,7 @@ Side-by-side comparison pages across three coding-agent repositories.
 
 Pull a handful of specific articles into the wiki without running deep research.
 
-**How to use it:** `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md)
+**How to use it:** `/research example_3_ingest_links/prompt.md`
 
 <p align="center"><img src="media/example_3_obsidian.png" alt="Source pages and synthesis built from three custom URLs" width="600"/></p>
 

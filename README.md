@@ -1,4 +1,4 @@
-# Building Your Own AI Research OS Workshop
+<h1 align="center">Building Your Own AI Research OS Workshop</h1>
 
 <p align="center">
 This is the repo for the talk at the <strong>AI Engineer World's Fair</strong> conference,<br/>
@@ -21,7 +21,7 @@ research that compounds over weeks, months, and years instead of dying in a conv
 
 <p align="center"><img src="media/wiki_grows.png" alt="The wiki grows: a custom link, another deep-research round, or a new derivative from a question all feed the same concept" width="700"/></p>
 
-Codex gives you an answer. This gives Codex a reusable research workspace:
+Codex or Claude gives you an answer. This gives your harness a reusable research memory:
 
 - `raw/` - copied or fetched source material
 - `wiki/sources/` - per-source summaries

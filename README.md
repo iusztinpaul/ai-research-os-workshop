@@ -88,14 +88,39 @@ user question / sources
 ## Examples
 
 Three end-to-end runs, each browsable in [`examples/`](examples/). Open the linked prompt
-in Claude Code / Codex with `/research` to reproduce it; the screenshot shows the resulting
+in Claude Code / Codex with `/research` to reproduce it; each screenshot shows the resulting
 wiki browsed in Obsidian.
 
-| Use case | How to use it | Output |
-|---|---|---|
-| **Deep research** from an outline + web resources — discover sources, summarize, and synthesize them into a topic wiki. | `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md) | <img src="media/example_1_obsidian.png" width="320"/><br/>A full research wiki on agentic harnesses, built from a content outline and reference links. |
-| **Ingest GitHub repos** — compute per-repo notes (architecture, agents, memory, permissions) and cross-repo comparisons, skipping deep discovery. | `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md) | <img src="media/example_2_obsidian.png" width="320"/><br/>Side-by-side comparison pages across three coding-agent repositories. |
-| **Ingest web links** — pull a handful of specific articles into the wiki without running deep research. | `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md) | <img src="media/example_3_obsidian.png" width="320"/><br/>Source pages and synthesis built from three custom URLs. |
+### 1. Deep research from an outline + web resources
+
+Discover sources, summarize, and synthesize them into a topic wiki.
+
+**How to use it:** `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md)
+
+<p align="center"><img src="media/example_1_obsidian.png" alt="A full research wiki on agentic harnesses, built from a content outline and reference links" width="900"/></p>
+
+A full research wiki on agentic harnesses, built from a content outline and reference links.
+
+### 2. Ingest GitHub repos
+
+Compute per-repo notes (architecture, agents, memory, permissions) and cross-repo
+comparisons, skipping deep discovery.
+
+**How to use it:** `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md)
+
+<p align="center"><img src="media/example_2_obsidian.png" alt="Side-by-side comparison pages across three coding-agent repositories" width="900"/></p>
+
+Side-by-side comparison pages across three coding-agent repositories.
+
+### 3. Ingest web links
+
+Pull a handful of specific articles into the wiki without running deep research.
+
+**How to use it:** `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md)
+
+<p align="center"><img src="media/example_3_obsidian.png" alt="Source pages and synthesis built from three custom URLs" width="900"/></p>
+
+Source pages and synthesis built from three custom URLs.
 
 ## How to use it
 
@@ -293,65 +318,3 @@ The agent reads `index.yaml` first and follows its pointers to wiki pages, deriv
 raw sources — the index *is* the retrieval layer, so there is no vector DB:
 
 <p align="center"><img src="media/index_retrieval.png" alt="The agent reads index.yaml first as the retrieval layer, pointing to wiki pages, derivatives, and raw sources, with no vector DB" width="800"/></p>
-
-## Extending it - add your own feature
-
-Every feature in this repo is a **skill**: a folder with a `SKILL.md` (the instructions
-the agent reads) plus optional helper `scripts/` and `agents/`. The plugin is just a
-bundle of these skill folders. Adding a feature means adding a new skill folder.
-
-### Anatomy of a skill
-
-```text
-plugins/ai-research-os/skills/<your-skill>/
-  SKILL.md          # required - frontmatter + instructions
-  scripts/          # optional - uv run --script helpers
-  agents/           # optional - sub-agent prompts
-```
-
-`SKILL.md` starts with frontmatter that tells the agent when to invoke it:
-
-```markdown
----
-name: my-skill
-description: One sentence on what it does and the phrases that should trigger it.
-user_invocable: true
----
-
-# My Skill
-
-Step-by-step instructions the agent follows when the skill runs.
-```
-
-The `description` is what the agent matches against, so make it specific and list the
-trigger phrases. Study the existing skills — `research-lint` is the simplest, `research`
-is the most complete reference.
-
-### Add a feature in four steps
-
-1. **Create the folder.** Copy the closest existing skill as a starting point:
-   `cp -R plugins/ai-research-os/skills/research-lint plugins/ai-research-os/skills/my-skill`
-2. **Edit `SKILL.md`.** Update the `name`, `description`, and instructions. Reuse the
-   shared data contract in `plugins/ai-research-os/skills/research/CONVENTIONS.md` so your
-   skill reads and writes the same `index.yaml` / `wiki/` layout as the others.
-3. **Test locally** with Option B above (symlink the skill into `.claude/skills/`), open
-   Claude Code, and confirm `/my-skill` appears and runs as expected.
-4. **Register and ship it.** The skill is auto-discovered by the plugin folder, so no
-   manifest edit is required to run it locally. When you want it in the published plugin,
-   update the description in `.claude-plugin/marketplace.json` and
-   `plugins/ai-research-os/.claude-plugin/plugin.json`, then open a PR.
-
-### Helper scripts
-
-Put reusable logic in `scripts/` and call it with `uv run --script`. Declare
-dependencies inline with [PEP 723](https://peps.python.org/pep-0723/) script metadata so
-`uv` installs them into an isolated environment automatically — no global installs, no
-`requirements.txt`. See
-`plugins/ai-research-os/skills/research/scripts/youtube_extract_transcript.py` for a
-complete example.
-
-## Notes
-
-- Obsidian is not required. It is useful for visualizing the generated markdown wiki.
-- YouTube ingestion uses public transcripts and requires no Gemini/OpenAI key.
-- See `DEPENDENCIES.md` for dependency rationale and removed older features.

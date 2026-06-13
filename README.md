@@ -1,9 +1,12 @@
 # Building Your Own AI Research OS Workshop
 
-This is the repo for the talk at the **AI Engineer World's Fair** conference,
-presented by Louis-François Bouchard ([X](https://x.com/Whats_AI) ·
-[LinkedIn](https://www.linkedin.com/in/whats-ai/)) and Paul Iusztin
-([X](https://x.com/pauliusztin_) · [LinkedIn](https://www.linkedin.com/in/pauliusztin/)).
+<p align="center">
+This is the repo for the talk at the <strong>AI Engineer World's Fair</strong> conference,<br/>
+presented by Louis-François Bouchard (<a href="https://x.com/Whats_AI">X</a> ·
+<a href="https://www.linkedin.com/in/whats-ai/">LinkedIn</a>) and Paul Iusztin
+(<a href="https://x.com/pauliusztin_">X</a> ·
+<a href="https://www.linkedin.com/in/pauliusztin/">LinkedIn</a>).
+</p>
 
 **I'm always losing my research.**
 

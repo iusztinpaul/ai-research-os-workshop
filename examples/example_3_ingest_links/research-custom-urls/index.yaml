@@ -1,0 +1,56 @@
+topic: 'Agentic AI systems: agent memory, agentic coding, and GraphRAG'
+created: '2026-06-13T12:59:39'
+last_updated: '2026-06-13T12:59:39'
+input_summary: Three Decoding AI articles by Paul Iusztin on building agentic AI systems — agent memory with Neo4j knowledge graphs, a multi-agent Claude Code engineering setup, and agentic GraphRAG with unified MCP memory.
+rounds_completed: 0
+total_sources: 3
+total_wiki_pages: 14
+sources:
+- uri_highlights: null
+  uri_full: raw/web-inside-neo4js-agent-memory.md
+  uri_source_page: wiki/sources/web-inside-neo4js-agent-memory.md
+  assets: []
+  original_path: https://www.decodingai.com/p/understanding-neo4j-graph-agent-memory-system
+  origin: web
+  title: Inside Neo4j's Agent Memory
+  authors:
+  - Paul Iusztin
+  published_date: '2026-05-19'
+  publication: Decoding AI
+  source_url: https://www.decodingai.com/p/understanding-neo4j-graph-agent-memory-system
+  relevance_score: 1.0
+  summary: Walks through Neo4j's knowledge-graph patterns for agent memory — turning one-shot conversations into compounding intelligence by extracting and maintaining shared entities, preferences, and facts across a growing knowledge base.
+  tags: []
+  wiki_refs: []
+- uri_highlights: null
+  uri_full: raw/web-from-vibe-coding-to-real-engineering-team.md
+  uri_source_page: wiki/sources/web-from-vibe-coding-to-real-engineering-team.md
+  assets: []
+  original_path: https://www.decodingai.com/p/squid-my-agentic-coding-setup-may-2026
+  origin: web
+  title: From Vibe Coding to a Real Engineering Team
+  authors:
+  - Paul Iusztin
+  published_date: '2026-05-12'
+  publication: Decoding AI
+  source_url: https://www.decodingai.com/p/squid-my-agentic-coding-setup-may-2026
+  relevance_score: 1.0
+  summary: Describes a Claude Code agentic coding setup that ships features end-to-end — moving past vibe coding by decomposing work into tasks and orchestrating a multi-agent engineering team (TUI, agent loop, tools, MCP, skills, slash commands).
+  tags: []
+  wiki_refs: []
+- uri_highlights: null
+  uri_full: raw/web-building-agentic-graphrag-systems.md
+  uri_source_page: wiki/sources/web-building-agentic-graphrag-systems.md
+  assets: []
+  original_path: https://www.decodingai.com/p/agentic-graphrag
+  origin: web
+  title: Building Agentic GraphRAG Systems
+  authors:
+  - Paul Iusztin
+  published_date: '2026-05-05'
+  publication: Decoding AI
+  source_url: https://www.decodingai.com/p/agentic-graphrag
+  relevance_score: 1.0
+  summary: Reframes GraphRAG as a data-modeling problem rather than a retrieval algorithm, covering knowledge graphs and ontologies and building toward unified memory exposed as an MCP server for AI agents. Motivated by context rot and data fragmentation.
+  tags: []
+  wiki_refs: []

@@ -80,17 +80,17 @@ user question / sources
  index.yaml + overview.md + synthesis.md + open-questions.md
 ```
 
-## Example
+## Examples
 
-TODO - add one complete example here.
+Three end-to-end runs, each browsable in [`examples/`](examples/). Open the linked prompt
+in Claude Code / Codex with `/research` to reproduce it; the screenshot shows the resulting
+wiki browsed in Obsidian.
 
-Suggested example:
-
-1. Start with a question and a few sources.
-2. Run `/research`.
-3. Show the generated `working-dir/research-<topic>/` directory.
-4. Ask a follow-up question that answers from the existing wiki instead of re-ingesting.
-5. Add a YouTube video or GitHub repo and show the wiki update.
+| Use case | How to use it | Output |
+|---|---|---|
+| **Deep research** from an outline + web resources — discover sources, summarize, and synthesize them into a topic wiki. | `/research` [`example_1_deep_research/prompt.md`](examples/example_1_deep_research/prompt.md) | <img src="media/example_1_obsidian.png" width="320"/><br/>A full research wiki on agentic harnesses, built from a content outline and reference links. |
+| **Ingest GitHub repos** — compute per-repo notes (architecture, agents, memory, permissions) and cross-repo comparisons, skipping deep discovery. | `/research` [`example_2_github/prompt.md`](examples/example_2_github/prompt.md) | <img src="media/example_2_obsidian.png" width="320"/><br/>Side-by-side comparison pages across three coding-agent repositories. |
+| **Ingest web links** — pull a handful of specific articles into the wiki without running deep research. | `/research` [`example_3_ingest_links/prompt.md`](examples/example_3_ingest_links/prompt.md) | <img src="media/example_3_obsidian.png" width="320"/><br/>Source pages and synthesis built from three custom URLs. |
 
 ## When to use it
 

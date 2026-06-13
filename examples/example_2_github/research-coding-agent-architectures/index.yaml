@@ -1,0 +1,77 @@
+topic: AI coding agent architectures — opencode vs pi vs hermes-agent
+created: '2026-06-12T17:34:44'
+last_updated: '2026-06-12T17:34:44'
+input_summary: Seed-only ingest of three coding-agent harness repos (anomalyco/opencode, earendil-works/pi, nousresearch/hermes-agent) with per-repo notes on general architecture, agents architecture, subagents architecture, memory system, and agent permission flow, plus global notes and cross-repo comparisons.
+rounds_completed: 0
+total_sources: 3
+total_wiki_pages: 37
+sources:
+- uri_highlights: null
+  uri_full: wiki/repos/opencode/ARCHITECTURE.md
+  uri_source_page: wiki/sources/opencode.md
+  assets: []
+  original_path: github://anomalyco/opencode@4ddfa7c6fa4cd5f9daab04f2800bc42b07378a33
+  origin: github
+  title: opencode
+  authors:
+  - anomalyco
+  published_date: null
+  publication: GitHub
+  source_url: https://github.com/anomalyco/opencode/tree/4ddfa7c6fa4cd5f9daab04f2800bc42b07378a33
+  relevance_score: 1.0
+  summary: 'Open-source AI coding agent harness (TypeScript/Go) ingested as a wiki of spec docs: general architecture plus scoped notes on agents architecture, subagents architecture, memory system, and agent permission flow.'
+  tags:
+  - coding-agent
+  - agent-harness
+  - architecture
+  wiki_refs: []
+  github_repo_url: https://github.com/anomalyco/opencode
+  github_commit_sha: 4ddfa7c6fa4cd5f9daab04f2800bc42b07378a33
+  github_branch: dev
+  github_files: []
+- uri_highlights: null
+  uri_full: wiki/repos/pi/ARCHITECTURE.md
+  uri_source_page: wiki/sources/pi.md
+  assets: []
+  original_path: github://earendil-works/pi@a455f62f72359f5f2260c16ee3ed653ce968de3d
+  origin: github
+  title: pi
+  authors:
+  - earendil-works
+  published_date: null
+  publication: GitHub
+  source_url: https://github.com/earendil-works/pi/tree/a455f62f72359f5f2260c16ee3ed653ce968de3d
+  relevance_score: 1.0
+  summary: 'Minimal AI coding agent by earendil-works ingested as a wiki of spec docs: general architecture plus scoped notes on agents architecture, subagents architecture, memory system, and agent permission flow.'
+  tags:
+  - coding-agent
+  - agent-harness
+  - architecture
+  wiki_refs: []
+  github_repo_url: https://github.com/earendil-works/pi
+  github_commit_sha: a455f62f72359f5f2260c16ee3ed653ce968de3d
+  github_branch: main
+  github_files: []
+- uri_highlights: null
+  uri_full: wiki/repos/hermes-agent/ARCHITECTURE.md
+  uri_source_page: wiki/sources/hermes-agent.md
+  assets: []
+  original_path: github://nousresearch/hermes-agent@d62979a6f34f64f2ed840f159aac66e24d7cad78
+  origin: github
+  title: hermes-agent
+  authors:
+  - nousresearch
+  published_date: null
+  publication: GitHub
+  source_url: https://github.com/nousresearch/hermes-agent/tree/d62979a6f34f64f2ed840f159aac66e24d7cad78
+  relevance_score: 1.0
+  summary: 'Nous Research''s agent harness ingested as a wiki of spec docs: general architecture plus scoped notes on agents architecture, subagents architecture, memory system, and agent permission flow.'
+  tags:
+  - coding-agent
+  - agent-harness
+  - architecture
+  wiki_refs: []
+  github_repo_url: https://github.com/nousresearch/hermes-agent
+  github_commit_sha: d62979a6f34f64f2ed840f159aac66e24d7cad78
+  github_branch: main
+  github_files: []

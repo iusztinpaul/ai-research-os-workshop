@@ -63,11 +63,11 @@ The system can run purely through Codex or Claude Code from a normal working dir
 
 Our `AI Research OS` runs locally via skills.
 
-Our [**Agent AI Engineering course**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online), built with Towards AI, shows how to ship it to production as a multi-agent system: MCP servers with LangGraph, an evaluator-optimizer loop, observability, evals and GCP deployment.
+Our [**Agent AI Engineering course**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online), built with Towards AI, shows how to ship it to production as a multi-agent system: MCP servers with LangGraph, an evaluator-optimizer loop, observability, evals, and GCP deployment.
 
 35 lessons. 3 end-to-end portfolio projects. A certificate. And a Discord community with direct access to industry experts and me.
 
-Built for software, data engineers or scientists transitioning into AI engineering.
+Built for software engineers, data engineers, or scientists transitioning into AI engineering.
 
 _Rated 5/5 by 300+ students. The first 7 lessons are free:_
 

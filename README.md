@@ -35,8 +35,7 @@ every week.
 
 ## What this is
 
-`AI Research OS` is a set of local AI skills for building and querying a persistent
-research wiki from your own sources:
+`AI Research OS` is a set of local AI skills for building and querying a persistent research wiki from your own sources:
 
 - Obsidian notes
 - Readwise highlights
@@ -45,6 +44,8 @@ research wiki from your own sources:
 - YouTube videos with public transcripts
 - web links
 - PDFs and local files
+
+**Via deep research on top of your personal Second Brain**
 
 Obsidian is optional. It is just a visual IDE for browsing the generated markdown wiki.
 The system can run purely through Codex or Claude Code from a normal working directory.

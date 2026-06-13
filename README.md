@@ -10,7 +10,7 @@ Why not just ask Codex?
 For simple questions, you should. If you have one repo, one link, or one quick question,
 open Codex or Claude Code and ask directly. That is faster.
 
-`ai-research-os` is for the cases where research should compound over time.
+`AI Research OS` is for the cases where research should compound over time.
 
 <p align="center"><img src="media/wiki_grows.png" alt="The wiki grows: a custom link, another deep-research round, or a new derivative from a question all feed the same concept" width="700"/></p>
 
@@ -28,7 +28,7 @@ every week.
 
 ## What this is
 
-`ai-research-os` is a set of local AI skills for building and querying a persistent
+`AI Research OS` is a set of local AI skills for building and querying a persistent
 research wiki from your own sources:
 
 - Obsidian notes
@@ -155,13 +155,13 @@ Do not use this when:
 
 ## Compared to alternatives
 
-| Tool | Best for | Limitation | Where `ai-research-os` fits |
+| Tool | Best for | Limitation | Where `AI Research OS` fits |
 |---|---|---|---|
 | Codex one-shot | Fast answers, coding help, repo Q&A | The answer is not automatically turned into a durable research workspace | Use Codex directly for simple questions; use this when the research should be reused and extended |
 | NotebookLM | Chatting with a fixed set of uploaded sources | Less programmable, less agent-native, not designed around repo parsing, wiki updates, or repeated source ingestion loops | Creates local files, source pages, indexes, and synthesis that agents can keep editing |
 | Deep research agents | Broad discovery and synthesis | Often produce a one-time report | Stores the report as a living wiki with raw sources, open questions, and append workflows |
 | RAG / vector databases | Retrieval over large corpora | Infrastructure-heavy; retrieval alone does not create source pages, comparisons, or a thesis | Keeps the workflow lightweight and artifact-first; indexing is human/agent-readable |
-| `ai-research-os` | Research that compounds across notes, repos, videos, links, and follow-up questions | More setup than a one-shot prompt | Gives Codex / Claude Code a reusable research workspace |
+| `AI Research OS` | Research that compounds across notes, repos, videos, links, and follow-up questions | More setup than a one-shot prompt | Gives Codex / Claude Code a reusable research workspace |
 
 ## Skills
 

@@ -45,13 +45,17 @@ The system can run purely through Codex or Claude Code from a normal working dir
 - Slides: [] (coming soon)
 - Video: [] (coming soon)
 
-## Course
+## Whenever You're Ready, Here's How to Go Deeper
 
-This repo is a practical demo of agentic research workflows. If you want to go deeper
-into building production-grade AI agents, workflows, evals, and agent harnesses, check out
-the Towards AI Agentic AI Engineering Course:
+<a href="https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter"><img src="media/course_clip.gif" alt="Agentic AI Engineering Course" width="800"/></a>
 
-https://academy.towardsai.net
+This workshop is a 2–4 hour taste. If you want to go from zero to shipping production-grade AI agents, check out our [**Agentic AI Engineering Course**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter), built with Towards AI.
+
+**34 lessons. Three end-to-end portfolio projects. A certificate. And a Discord community with direct access to industry experts and us.**
+
+Rated 5/5 by 300+ students. The first 6 lessons are free:
+
+[**Start here →**](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_workshop&utm_id=researchwriter)
 
 ## Architecture
 

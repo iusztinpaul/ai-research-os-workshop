@@ -8,12 +8,11 @@ presented by Louis-François Bouchard (<a href="https://x.com/Whats_AI">X</a> ·
 <a href="https://www.linkedin.com/in/pauliusztin/">LinkedIn</a>).
 </p>
 
+----
+
 **I'm always losing my research.**
 
-5,000+ notes in Obsidian, 5,000+ highlights in Readwise, plus Notion and Google Drive —
-growing ~250 files a month. And every research session still starts from zero: paste the
-same links into Codex, watch it rebuild context on the fly, then lose all of it when the
-chat ends.
+5,000+ notes in Obsidian, 5,000+ highlights in Readwise, plus Notion and Google Drive — growing ~250 files a month. And every research session still starts from zero: paste the same links into Codex, watch it rebuild context on the fly, then lose all of it when the chat ends.
 
 Access to information was never the bottleneck. **Reusing it was.**
 

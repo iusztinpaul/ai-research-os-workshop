@@ -53,14 +53,22 @@ Set `uri_highlights: null`, `uri_full: "raw/<slug>.md"`.
 cp "<original_path>" "<research_dir>/raw/readwise-<slug>-key-highlights.md"
 readwise reader-get-document-details --document-id <document_id> > "<research_dir>/raw/readwise-<slug>.md" || true
 ```
-Set `uri_highlights: "raw/readwise-<slug>-key-highlights.md"`, `uri_full: "raw/readwise-<slug>.md"`. If the CLI call fails (exit non-zero) or `<document_id>` is null, crawl `<source_url>` with Bright Data (`bdata scrape "<source_url>" -o "<research_dir>/raw/readwise-<slug>.md"`, see the `/brightdata-cli` skill) — it clears bot/paywall/JS walls that WebFetch can't. If `bdata` is unavailable, fall back to WebFetch and write the markdown to the same destination. If all of those fail, leave the `uri_full` file absent and set `uri_full: null`.
+Set `uri_highlights: "raw/readwise-<slug>-key-highlights.md"`, `uri_full: "raw/readwise-<slug>.md"`. If the CLI call fails (exit non-zero) or `<document_id>` is null, fetch `<source_url>` with `curl` and strip the HTML to the same destination:
+```bash
+curl -fsSL --compressed --max-time 30 \
+  -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36" \
+  "<source_url>" \
+  | python3 -c 'import sys,re,html;t=sys.stdin.read();t=re.sub(r"(?is)<(script|style|noscript|template)\b.*?</\1>"," ",t);t=re.sub(r"(?i)</(p|div|h[1-6]|li|tr|section|article|header|footer)>|<br\s*/?>","\n",t);t=re.sub(r"(?s)<[^>]+>"," ",t);t=html.unescape(t);t=re.sub(r"[ \t]+"," ",t);t=re.sub(r"\n[ \t]+","\n",t);t=re.sub(r"\n{3,}","\n\n",t);sys.stdout.write(t.strip())' \
+  > "<research_dir>/raw/readwise-<slug>.md"
+```
+If `curl` fails or returns suspiciously little text (< ~500 chars — JS-rendered/bot-walled), fall back to WebFetch and write the markdown to the same destination. If all of those fail, leave the `uri_full` file absent and set `uri_full: null`.
 
-**Web sources** (`origin: "web"`, seed URIs) — Layer 3 only (no user-curated highlights exist; we do not LLM-extract them). The orchestrator already crawled the page in Step 1 (Bright Data `bdata scrape`, WebFetch fallback) and passed the result as `fetched_markdown`:
+**Web sources** (`origin: "web"`, seed URIs) — Layer 3 only (no user-curated highlights exist; we do not LLM-extract them). The orchestrator already fetched the page in Step 1 (`curl` + stdlib HTML stripper, WebFetch fallback) and passed the result as `fetched_markdown`:
 ```bash
 # Use python -c or cat here-doc to write the fetched content without a Read call.
 printf '%s' "$FETCHED_MARKDOWN" > "<research_dir>/raw/web-<slug>.md"
 ```
-If `fetched_markdown` is empty/missing (e.g. the seed was added without pre-fetching), crawl it now with Bright Data — `bdata scrape "<source_url>" -o "<research_dir>/raw/web-<slug>.md"` (see the `/brightdata-cli` skill), falling back to WebFetch if `bdata` is unavailable. Set `uri_highlights: null`, `uri_full: "raw/web-<slug>.md"`. If every fetch fails, record the source as skipped.
+If `fetched_markdown` is empty/missing (e.g. the seed was added without pre-fetching), fetch it now with `curl` and strip the HTML to `<research_dir>/raw/web-<slug>.md` (canonical recipe in `SKILL.md` Step 1, point 3), falling back to WebFetch if `curl` fails or returns < ~500 chars. Set `uri_highlights: null`, `uri_full: "raw/web-<slug>.md"`. If every fetch fails, record the source as skipped.
 
 **YouTube sources** (`origin: "youtube"`) - Layer 3 only. The user-provided video is converted to timestamped research markdown from public YouTube captions. No API key is required, but the video must expose a usable public transcript/caption track.
 

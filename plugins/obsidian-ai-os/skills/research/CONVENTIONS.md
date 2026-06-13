@@ -283,7 +283,7 @@ Do not skip Layer 1. Do not bulk-read Layer 3.
 
 ## Web content fetching
 
-Generic `http(s)://` sources — anything that is **not** a vault path, Readwise reference, GitHub repo, NotebookLM URI, YouTube URL, or `.pdf` — are crawled with the **Bright Data CLI** (`bdata scrape`, via the `/brightdata-cli` skill), which returns clean markdown and transparently clears bot-blocking, CAPTCHAs, paywalls, JS rendering, and geo-walls. Known platforms (LinkedIn, Reddit, Amazon, …) prefer the matching `bdata pipelines <type>` for structured output. **WebFetch is the fallback only** — used when `bdata` is not installed/authenticated; runs that fall back should say so. This applies wherever the family fetches a remote page: web seeds (orchestrator Step 1) and the Readwise→URL fallback in the builder. The fetch tool used is recorded in `log.md`.
+Generic `http(s)://` sources — anything that is **not** a vault path, Readwise reference, GitHub repo, NotebookLM URI, YouTube URL, or `.pdf` — are fetched with **`curl`** and reduced to readable text by a stdlib-only `python3` HTML stripper (no extra dependency; canonical recipe in `SKILL.md` Step 1, point 3). This works on normal, server-rendered HTML sites only — it does **not** clear bot-blocking, CAPTCHAs, paywalls, JS-only rendering, or geo-walls, and there are no platform-specific extractors. **WebFetch is the fallback** — used when `curl` exits non-zero or returns suspiciously little text (< ~500 chars: a JS-only shell or bot wall); runs that fall back should say so. This applies wherever the family fetches a remote page: web seeds (orchestrator Step 1) and the Readwise→URL fallback in the builder. The fetch tool used is recorded in `log.md`.
 
 ## YouTube video handling
 
@@ -304,7 +304,7 @@ Public YouTube URLs are first-class seed sources and should be routed before gen
 
 **PDFs.**
 - User-dropped PDFs: extract to markdown via `pymupdf4llm`. Markdown becomes the raw file; original PDF preserved at `raw/assets/<slug>/original.pdf`.
-- Web PDFs (URL points at `.pdf`): download → extract → same flow; if the direct download is bot-blocked, retry the download through Bright Data (`bdata scrape … -o original.pdf`).
+- Web PDFs (URL points at `.pdf`): download → extract → same flow; if the direct download is bot-blocked, retry the download with `curl` (`curl -fsSL -A "<browser UA>" … -o original.pdf`).
 - Readwise PDFs: already extracted to markdown by Readwise CLI; no special handling.
 - NotebookLM PDFs: already text via `nlm source content`; no special handling.
 - Image-rich PDFs (slide decks, papers): images are extracted alongside text, treated identically to inline images.

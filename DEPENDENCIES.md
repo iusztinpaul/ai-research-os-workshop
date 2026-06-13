@@ -27,8 +27,10 @@ is kept for local dev convenience only — the skills do not rely on it.
 ## 2. External CLIs and auth (install + authenticate separately where needed)
 
 Invoked by name from the skills. Their **usage skills are bundled** in this plugin
-(`obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli`) so the agent knows the
-commands, but the binaries are not — install each.
+(`obsidian-cli`, `readwise-cli`, `nlm-skill`) so the agent knows the
+commands, but the binaries are not — install each. Generic web pages need no CLI: they are
+fetched with preinstalled `curl` + a `python3` stdlib HTML stripper (no install, no auth),
+with `WebFetch` as the fallback for JS-rendered or bot-walled pages.
 
 **Safeguards.** `/research` preflights every source CLI with `command -v` (Step 0.5),
 warns clearly for each missing one, and degrades per the table below instead of crashing.
@@ -42,7 +44,6 @@ the run continues with the available sources, or stops with an explicit message 
 | `obsidian` | Obsidian CLI on PATH (see `obsidian-cli`) | vault-scoped | **none — required for vault search** |
 | `readwise` | `npm install -g @readwise/cli` | `readwise login-with-token <token>` | source skipped |
 | `nlm` | Go CLI (see `nlm-skill`) | `nlm login` (~20 min sessions) | warn + skip NotebookLM |
-| `bdata` / `brightdata` | `curl -fsSL https://cli.brightdata.com/install.sh \| bash` or `npm i -g @brightdata/cli` (Node ≥ 20) | `bdata login` | WebFetch (lower fidelity) |
 | `marp` | optional viewer | — | view in Obsidian Marp plugin |
 | `git` | system git | — | GitHub ingestion unavailable |
 | YouTube captions | none | none | YouTube video ingestion skipped when captions/transcripts are unavailable |
@@ -70,5 +71,6 @@ No PARA structure, templates, or tagging-rules files are required anymore.
 | "Second Brain" branding → "your knowledge sources / Obsidian vault" | Genericized. |
 | `.claude/skills/…` + `<skill_dir>` → `${CLAUDE_PLUGIN_ROOT:-.claude}/skills/…` | Resolves under both install methods: `${CLAUDE_PLUGIN_ROOT}` for a Claude Code plugin install, and the `.claude/skills/` fallback for plain skill installs (`npx skills add`). |
 | `uv run python <script>` → `uv run --script <script>` + PEP 723 headers | Self-bootstrapping Python with no project pyproject. |
-| Bundled `obsidian-cli`, `readwise-cli`, `nlm-skill`, `brightdata-cli` | Self-contained usage docs for the source CLIs. |
+| Bundled `obsidian-cli`, `readwise-cli`, `nlm-skill` | Self-contained usage docs for the source CLIs. |
+| Replaced Bright Data web crawling with `curl` + `python3` stdlib | Drops an external CLI, account, and auth — generic HTML sites fetch with preinstalled tools; WebFetch remains the fallback. |
 | `resources/` (profiles, datasets, glossary) NOT moved | Never referenced by the research family. |

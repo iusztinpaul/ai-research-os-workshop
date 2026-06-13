@@ -282,8 +282,9 @@ When the caller is another skill (programmatic, not the user directly), drop the
 This skill orchestrates external CLIs that may not be installed. **Skip this entirely for
 query mode.** For ingest modes, only check the CLIs that the selected route can actually
 use. Seed-only modes (`append`, seed-only `init`) check
-seed-specific CLIs only: `git` for GitHub seeds, `bdata` for generic web seeds, and no
-Obsidian/Readwise/NLM discovery check. Discovery modes (`deep`, `init` with
+seed-specific CLIs only: `git` for GitHub seeds, and no
+Obsidian/Readwise/NLM discovery check. Generic web seeds need no CLI — they are fetched
+with `curl` (preinstalled). Discovery modes (`deep`, `init` with
 discovery) run the full source preflight. A missing CLI must never crash the run with a
 cryptic `command not found`; it must degrade gracefully with a clear, named warning.
 
@@ -301,7 +302,7 @@ on PATH. For Obsidian, also support the installed desktop CLI when it is not on 
 For all other CLIs, PATH detection is enough:
 
 ```bash
-for cli in readwise nlm bdata git; do
+for cli in readwise nlm git; do
   if command -v "$cli" >/dev/null 2>&1; then
     echo "$cli: available"
   else
@@ -311,8 +312,8 @@ done
 ```
 
 For seed-only modes, build `available_clis` from the seed list: include `git` only if a
-GitHub seed is present, include `bdata` only if a generic web seed is present, and mark
-other source CLIs as `not_needed`.
+GitHub seed is present, and mark other source CLIs as `not_needed`. Generic web seeds are
+fetched with `curl` and need no preflight.
 
 Degradation policy — apply per source. For every MISSING CLI that is relevant to the
 selected route, **emit a loud one-line warning to the user up front** (not silently),
@@ -324,7 +325,6 @@ without it:
 | `obsidian` | Obsidian vault search (a research source) | Warn: "⚠️ Obsidian CLI unavailable — skipping your vault as a source. Enable the Obsidian CLI, put `obsidian` on PATH, or set `OBSIDIAN_CLI` to the CLI executable. See the `obsidian-cli` skill." Drop Obsidian from `available_clis`; continue with other sources. |
 | `readwise` | Readwise library + feed search | Warn: "⚠️ `readwise` CLI not found — skipping Readwise. See the `readwise-cli` skill (`npm install -g @readwise/cli`)." Continue. |
 | `nlm` | NotebookLM search | Warn: "⚠️ `nlm` CLI not found — skipping NotebookLM. See the `nlm-skill`." Set `notebook_ids = []`; skip Step 3b's auth check. Continue. |
-| `bdata` | Web-seed crawling + Readwise→URL fallback | Warn: "⚠️ `bdata` CLI not found — web pages will be fetched with the lower-fidelity WebFetch fallback. See the `brightdata-cli` skill." Use WebFetch. Continue. |
 | `git` | GitHub repo ingestion (Step 1a) | Warn (only if the brain dump contains a GitHub URL): "⚠️ `git` not found — skipping GitHub repo(s): `<list>`." Skip Step 1a entirely; drop those seeds. Continue. |
 
 YouTube ingestion does not require an API key. It uses public captions via
@@ -342,8 +342,7 @@ tell the user clearly:
 Otherwise proceed with whatever is available. **Pass `available_clis` and
 `source_commands` into every researcher subagent (Step 4)** so it only attempts searches
 for installed CLIs and uses the resolved command path when a binary is not on PATH. Auth
-(not just presence) is re-checked at point of use for `nlm` (Step 3b) and `bdata` (Step
-1).
+(not just presence) is re-checked at point of use for `nlm` (Step 3b).
 
 ## Step 1 — Understand the brain dump
 
@@ -360,29 +359,26 @@ If the brain dump contains URIs, process them before moving to step 2:
 
 1. **Vault paths** (e.g., `Notes/Some Note.md` or `[[Some Note]]`): Read the file directly. These go straight into the research output.
 2. **YouTube URLs** (`youtube.com/watch`, `youtu.be`, `youtube.com/shorts`, `youtube.com/embed`, `youtube.com/live`): Treat as first-class video seeds, not generic web pages. Process them before generic web URLs. Create a seed entry with `origin: "youtube"`, `original_path: "youtube://<video_id>"`, `source_url: <url>`, `youtube_url: <url>`, `youtube_video_id: <video_id>`, `transcript_source: "transcript_api"`, `timestamps_available: true`, `relevance_score: 1.0`, and a short placeholder `summary` from the user's framing. The raw extraction happens in the Builder via `scripts/youtube_extract_transcript.py`. If captions are unavailable, the Builder records the source as skipped with the script's JSON error unless the user provided a manual transcript file.
-3. **Generic web URLs** (e.g., `https://example.com/article`) — any `http(s)://` link that is **not** one of the recognized special origins below (not a vault path, not a Readwise reference, not a GitHub repo, not a NotebookLM URI, not a YouTube URL, and not a `.pdf`): **crawl it with the Bright Data CLI via the `/brightdata-cli` skill, not WebFetch.** Bright Data handles bot-blocking, CAPTCHAs, paywalled/JS-rendered pages, and geo-walls that WebFetch silently fails on, and returns clean markdown by default:
+3. **Generic web URLs** (e.g., `https://example.com/article`) — any `http(s)://` link that is **not** one of the recognized special origins below (not a vault path, not a Readwise reference, not a GitHub repo, not a NotebookLM URI, not a YouTube URL, and not a `.pdf`): **fetch it with `curl` and strip the HTML to readable text** using only preinstalled tools (`curl` + `python3` stdlib — no extra dependency). This handles normal, server-rendered HTML sites; it does **not** clear bot walls, CAPTCHAs, JS-only rendering, or paywalls — `WebFetch` is the fallback for those (see below).
 
    ```bash
-   # Default output is clean markdown — exactly what we want for the raw layer.
-   bdata scrape "<url>" -o "working-dir/research-scrape-<slug>.md"
-   # Heavy / slow pages:
-   bdata scrape "<url>" --async   # then: bdata status <job-id> --wait
+   curl -fsSL --compressed --max-time 30 \
+     -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36" \
+     "<url>" \
+     | python3 -c 'import sys,re,html;t=sys.stdin.read();t=re.sub(r"(?is)<(script|style|noscript|template)\b.*?</\1>"," ",t);t=re.sub(r"(?i)</(p|div|h[1-6]|li|tr|section|article|header|footer)>|<br\s*/?>","\n",t);t=re.sub(r"(?s)<[^>]+>"," ",t);t=html.unescape(t);t=re.sub(r"[ \t]+"," ",t);t=re.sub(r"\n[ \t]+","\n",t);t=re.sub(r"\n{3,}","\n\n",t);sys.stdout.write(t.strip())' \
+     > "working-dir/research-scrape-<slug>.md"
    ```
 
-   - **Check availability first (presence, then auth).** Guard the binary explicitly:
-     ```bash
-     command -v bdata >/dev/null 2>&1 || echo "MISSING: bdata"
-     ```
-     If `bdata` (a.k.a. `brightdata`) is MISSING, **or** it's present but unauthenticated (`bdata config` fails), **fall back to WebFetch** so the run still completes — and tell the user once, clearly: "⚠️ Bright Data unavailable (not installed / not authenticated) — fetched `<url>` with the lower-fidelity WebFetch fallback; see the `brightdata-cli` skill and re-run for full fidelity." Never let a missing `bdata` abort the seed.
-   - **Known platforms get richer extraction.** When the URL is a platform Bright Data has a dedicated pipeline for (LinkedIn, Reddit, Amazon, Instagram, TikTok, Google Maps, …), prefer `bdata pipelines <type> "<url>"` over a plain scrape for structured output (`bdata pipelines list` to see all types; full reference in the `/brightdata-cli` skill). Otherwise use `bdata scrape`. YouTube is handled by the first-class transcript path above, not by Bright Data, unless the user provides a non-YouTube video page that must be scraped as ordinary web content.
+   - **Fall back to WebFetch when curl can't render the page.** If `curl` exits non-zero **or** the stripped output is suspiciously small (< ~500 chars — typically a JS-only shell or a bot wall), **use WebFetch** so the run still completes, and tell the user once, clearly: "⚠️ `curl` couldn't render `<url>` (likely JS-rendered or bot-walled) — used the lower-fidelity WebFetch fallback." Never let a failed fetch abort the seed.
+   - YouTube is handled by the first-class transcript path above, not by this web path, unless the user provides a non-YouTube video page that must be fetched as ordinary web content.
    - Capture the returned markdown as the source's `fetched_markdown` (see below) so the builder writes the raw file without re-fetching. Set `origin: "web"`, `original_path: <full url>`, `source_url: <full url>`.
 4. **Readwise references**: If the user references a specific Readwise source by name, search for it via the MCP tool.
 5. **NotebookLM references** (e.g., `nlm://notebook/<id>`, a notebook name, or "my NotebookLM notebook on X"): These reference an entire notebook. Do not treat the notebook itself as a seed source — instead, note the notebook ID for the NLM discovery step (Step 3b) so it's always included in the search. Individual sources within it will be discovered during the research rounds.
 6. **GitHub repositories** (e.g., `https://github.com/owner/repo` or `.../tree/<branch>`): Process via the GitHub pipeline below (Step 1a). Produces one `ARCHITECTURE.md` always and one `<module>.md` per targeted module. GitHub never participates in research rounds — it is always seed-only.
 7. **Local PDFs** (e.g., a path ending in `.pdf` from the user's filesystem, including paths inside the vault like `Media/some-paper.pdf`): Treat as a first-class seed. The actual extraction happens in Step 6.2 via `scripts/extract_pdf.py` — at this stage just record the seed entry with `origin: "pdf"`, `original_path: pdf://<basename>`, `source_url: null`, and a placeholder `summary` (the user's framing if they provided one, else empty — the source_writer will fill it in from extracted text in Step 6.3). Store the absolute path on the seed entry as `local_pdf_path` so Step 6.2 knows where to extract from.
-8. **Web PDFs** (a URL ending in `.pdf`): Same treatment as local PDFs, but Step 6.2 will download to `raw/assets/<slug>/original.pdf` first via `httpx`, then extract. If the `httpx` download is blocked (403 / bot wall / CAPTCHA), retry the download through Bright Data (`bdata scrape "<url>" -o "raw/assets/<slug>/original.pdf"`, see `/brightdata-cli`) before giving up.
+8. **Web PDFs** (a URL ending in `.pdf`): Same treatment as local PDFs, but Step 6.2 will download to `raw/assets/<slug>/original.pdf` first via `httpx`, then extract. If the `httpx` download is blocked (403 / bot wall / CAPTCHA), retry the download with `curl` (`curl -fsSL --max-time 60 -A "Mozilla/5.0 ... Chrome/120 Safari/537.36" "<url>" -o "raw/assets/<slug>/original.pdf"`) before giving up.
 
-For each seed URI, create a finding entry (same format as research subagent findings — including `author`, `published_date`, `publication`, `source_url` metadata fields). For web seed URIs, also include a `fetched_markdown` field carrying the cleaned content from the Bright Data scrape (or the WebFetch fallback), so the builder can write the file directly without a re-fetch. **Seed URIs always get `relevance_score: 1.0`** — the user explicitly provided them, so they are the highest-relevance sources by definition. They bypass the discovery scoring entirely (they flow through `seeds.json`, not the discovery results) and are always included in the final output. Never assign a seed URI a score lower than 1.0.
+For each seed URI, create a finding entry (same format as research subagent findings — including `author`, `published_date`, `publication`, `source_url` metadata fields). For web seed URIs, also include a `fetched_markdown` field carrying the cleaned content from the curl fetch (or the WebFetch fallback), so the builder can write the file directly without a re-fetch. **Seed URIs always get `relevance_score: 1.0`** — the user explicitly provided them, so they are the highest-relevance sources by definition. They bypass the discovery scoring entirely (they flow through `seeds.json`, not the discovery results) and are always included in the final output. Never assign a seed URI a score lower than 1.0.
 
 ### Step 1a — GitHub pipeline (per repo URL)
 
@@ -912,7 +908,7 @@ Sessions expire in ~20 minutes. If commands fail with auth errors, skip NLM for 
 
 **NotebookLM note vs source priority**: Notebooks contain two types of content — **notes** (user-written synthesis, right panel in the UI) and **sources** (imported articles/papers, left panel). Notes always take priority because the user deliberately created them. The researcher subagent fetches notes first via `nlm note list`, then uses `nlm notebook query` to discover relevant raw sources. Notes get `nlm_content_type: "note"` and use `nlm://note/<id>` paths; raw sources get `nlm_content_type: "source"` and use `nlm://source/<id>` paths.
 
-**Extensibility**: This skill searches Obsidian, Readwise, and NotebookLM, and accepts web URLs + GitHub repos as seed-only URIs (GitHub handled via the Step 1a pipeline). Generic web links are crawled with the Bright Data CLI (`bdata scrape` / `bdata pipelines`) via the `/brightdata-cli` skill — see Step 1, point 2. The architecture is designed so new sources can be added by extending the researcher agent with additional search steps; the natural next step is web-search rounds via `bdata search "<query>" --json` (the researcher harvests result URLs, then scrapes the promising ones with `bdata scrape`). The orchestrator doesn't need to change — it just spawns researchers and collects results.
+**Extensibility**: This skill searches Obsidian, Readwise, and NotebookLM, and accepts web URLs + GitHub repos as seed-only URIs (GitHub handled via the Step 1a pipeline). Generic web links are fetched with `curl` + the stdlib HTML stripper (WebFetch fallback) — see Step 1, point 3. The architecture is designed so new sources can be added by extending the researcher agent with additional search steps; a natural next step is web-search rounds (the researcher harvests result URLs from a search provider, then fetches the promising ones with the same curl recipe). The orchestrator doesn't need to change — it just spawns researchers and collects results.
 
 ## Agent reference
 

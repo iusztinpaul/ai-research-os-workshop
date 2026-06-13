@@ -228,7 +228,7 @@ you and continues with the sources it can access.
 | `obsidian` | Search local Obsidian notes | Enable Obsidian CLI in Obsidian settings. On Windows, the skill also tries `%LOCALAPPDATA%\Programs\Obsidian\Obsidian.com`. |
 | `readwise` | Search Readwise library and feed | `npm install -g @readwise/cli`, then authenticate. |
 | `nlm` | Search NotebookLM notebooks | See the bundled `nlm-skill`. |
-| `bdata` / `brightdata` | Higher-fidelity web crawling | Install Bright Data CLI and authenticate. WebFetch fallback is used if missing. |
+| Web pages | Fetch generic HTML sites | None — uses preinstalled `curl` + a `python3` stdlib HTML stripper. `WebFetch` is the fallback for JS-rendered or bot-walled pages. |
 | `git` | Ingest GitHub repos | Install system Git. |
 | YouTube captions | Ingest public YouTube transcripts | No API key required. Public captions must be available. |
 

@@ -1,6 +1,6 @@
-# ai-research-os-workshop workshop
+# Building Your Own AI Research OS Workshop
 
-This is the repo for the workshop at the **AI Engineer World's Fair** conference,
+This is the repo for the talk at the **AI Engineer World's Fair** conference,
 presented by Louis-François Bouchard ([X](https://x.com/Whats_AI) ·
 [LinkedIn](https://www.linkedin.com/in/whats-ai/)) and Paul Iusztin
 ([X](https://x.com/pauliusztin_) · [LinkedIn](https://www.linkedin.com/in/pauliusztin/)).

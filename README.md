@@ -54,7 +54,7 @@ The system can run purely through Codex or Claude Code from a normal working dir
 
 ## Slides and video
 
-- Slides: [] (coming soon)
+- Slides: [Google Slide Deck](https://docs.google.com/presentation/d/1W0IHwG0uZcIhMjRVHVsBFTsGjJp5SkcSEc2qhxuFCTU/edit?usp=sharing)
 - Video: [] (coming soon)
 
 ## [Whenever You're Ready, Here's How to Go Deeper](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online)

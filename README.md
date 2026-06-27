@@ -1,3 +1,4 @@
+<img width="1280" height="720" alt="maxresdefault" src="https://github.com/user-attachments/assets/0da39f96-f243-4787-ae05-ac4c05ac4c7a" />
 <h1 align="center">Building Your Own AI Research OS Workshop</h1>
 
 <p align="center">
@@ -52,10 +53,19 @@ The system can run purely through Codex or Claude Code from a normal working dir
 
 <p align="center"><img src="media/project_scoped_wiki.png" alt="Sources and deep research feed a project wiki, which an agent renders into articles, videos, and slides" width="800"/></p>
 
-## Slides and video
+## Slides
 
 - Slides: [Google Slide Deck](https://docs.google.com/presentation/d/1W0IHwG0uZcIhMjRVHVsBFTsGjJp5SkcSEc2qhxuFCTU/edit?usp=sharing)
-- Video: [] (coming soon)
+
+<a href="https://docs.google.com/presentation/d/1W0IHwG0uZcIhMjRVHVsBFTsGjJp5SkcSEc2qhxuFCTU/edit?usp=sharing">
+        <img width="1798" height="1047" alt="Screenshot 2026-06-27 at 11 57 10" src="https://github.com/user-attachments/assets/53bc69d7-83c5-4cf3-8df0-a2f12305f191" />
+</a>
+
+## Video
+
+<a href="https://www.youtube.com/watch?v=ZRM_TfEZcIo&t=812s">
+        <img width="1280" height="720" alt="maxresdefault" src="https://github.com/user-attachments/assets/5331da7f-6366-48e9-a0e8-d2d12d5f5921" />
+</a>
 
 ## [Whenever You're Ready, Here's How to Go Deeper](https://academy.towardsai.net/courses/agent-engineering?utm_source=github&utm_medium=aieng&utm_campaign=2026_aieng_sf_online)
 

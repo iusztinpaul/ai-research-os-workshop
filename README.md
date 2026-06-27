@@ -60,7 +60,7 @@ The system can run purely through Codex or Claude Code from a normal working dir
         <img width="1798" height="1047" alt="Screenshot 2026-06-27 at 11 57 10" src="https://github.com/user-attachments/assets/53bc69d7-83c5-4cf3-8df0-a2f12305f191" />
 </a>
 
-## [Video](https://www.youtube.com/watch?v=ZRM_TfEZcIo
+## [Video](https://www.youtube.com/watch?v=ZRM_TfEZcIo)
 
 <a href="https://www.youtube.com/watch?v=ZRM_TfEZcIo">
         <img width="1280" height="720" alt="maxresdefault" src="https://github.com/user-attachments/assets/5331da7f-6366-48e9-a0e8-d2d12d5f5921" />
